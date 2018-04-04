@@ -1,0 +1,111 @@
+nativeModules = [{
+	"module": "document",
+	"moduleId": 0,
+	"methods": [{
+		"method": "removeElement",
+		"methodId": 0
+	}, {
+		"method": "moveElement",
+		"methodId": 1
+	}, {
+		"method": "addElement",
+		"methodId": 2
+	}, {
+		"method": "setStyles",
+		"methodId": 3
+	}, {
+		"method": "removeEvent",
+		"methodId": 4
+	}, {
+		"method": "setAttr",
+		"methodId": 5
+	}, {
+		"method": "updateFinish",
+		"methodId": 6
+	}, {
+		"method": "removeAttr",
+		"methodId": 7
+	}, {
+		"method": "addKeyframe",
+		"methodId": 8
+	}, {
+		"method": "addElementById",
+		"methodId": 9
+	}, {
+		"method": "scrollTo",
+		"methodId": 10
+	}, {
+		"method": "createElement",
+		"methodId": 11
+	}, {
+		"method": "createBody",
+		"methodId": 12
+	}, {
+		"method": "addEvent",
+		"methodId": 13
+	}, {
+		"method": "addKeyframeMap",
+		"methodId": 14
+	}, {
+		"method": "createFinish",
+		"methodId": 15
+	}]
+}, {
+	"module": "CanvasModule",
+	"moduleId": 1,
+	"methods": [{
+		"method": "unlockCanvas",
+		"methodId": 0
+	}, {
+		"method": "lockCanvas",
+		"methodId": 1
+	}, {
+		"method": "clearRect",
+		"methodId": 2
+	}, {
+		"method": "drawImage",
+		"methodId": 3
+	}, {
+		"method": "fillText",
+		"methodId": 4
+	}]
+}, {
+	"module": "Timer",
+	"moduleId": 2,
+	"methods": [{
+		"method": "setInterval",
+		"methodId": 0
+	}, {
+		"method": "clearInterval",
+		"methodId": 1
+	}, {
+		"method": "setTimeout",
+		"methodId": 2
+	}, {
+		"method": "clearTimeout",
+		"methodId": 3
+	}]
+}, {
+	"module": "Networking",
+	"moduleId": 3,
+	"methods": [{
+		"method": "clearCookies",
+		"methodId": 0
+	}, {
+		"method": "abortRequest",
+		"methodId": 1
+	}, {
+		"method": "request",
+		"methodId": 2
+	}]
+}, {
+	"module": "localStorage",
+	"moduleId": 4,
+	"methods": [{
+		"method": "getItem",
+		"methodId": 0
+	}, {
+		"method": "setItem",
+		"methodId": 1
+	}]
+}]
