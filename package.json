@@ -13,6 +13,8 @@
     "types/*.d.ts"
   ],
   "scripts": {
+    "dev:plato": "rollup -w -c scripts/config.js --environment TARGET:plato ",
+    "dev:plato:compiler": "rollup -w -c scripts/config.js --environment TARGET:plato-template-compiler ",
     "dev": "rollup -w -c scripts/config.js --environment TARGET:web-full-dev",
     "dev:cjs": "rollup -w -c scripts/config.js --environment TARGET:web-runtime-cjs",
     "dev:esm": "rollup -w -c scripts/config.js --environment TARGET:web-runtime-esm",

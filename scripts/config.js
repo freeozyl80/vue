@@ -7,6 +7,7 @@ const node = require('rollup-plugin-node-resolve')
 const flow = require('rollup-plugin-flow-no-whitespace')
 const version = process.env.VERSION || require('../package.json').version
 const weexVersion = process.env.WEEX_VERSION || require('../packages/weex-vue-framework/package.json').version
+const platoVueVersion = process.env.PLATO_VUE_VERSION || require('../packages/platovue/package.json').version
 
 const banner =
   '/*!\n' +
@@ -14,6 +15,16 @@ const banner =
   ' * (c) 2014-' + new Date().getFullYear() + ' Evan You\n' +
   ' * Released under the MIT License.\n' +
   ' */'
+
+const platoBanner = `// fix env
+try {
+  if (!global) global = {};
+  global.process = global.process || {};
+  global.process.env = global.process.env || {};
+} catch (e) {}
+`
+
+
 
 const weexFactoryPlugin = {
   intro () {
@@ -23,7 +34,14 @@ const weexFactoryPlugin = {
     return '}'
   }
 }
-
+const platoFactoryPlugin = {
+  intro () {
+    return 'module.exports = function platoFactory (exports, native) {'
+  },
+  outro () {
+    return '}'
+  }
+}
 const aliases = require('./alias')
 const resolve = p => {
   const base = p.split('/')[0]
@@ -165,6 +183,20 @@ const builds = {
     dest: resolve('packages/weex-template-compiler/build.js'),
     format: 'cjs',
     external: Object.keys(require('../packages/weex-template-compiler/package.json').dependencies)
+  },
+  'plato-framework': {
+    plato: true,
+    entry: resolve('plato/entry-framework.js'),
+    dest: resolve('packages/plato-vue-framework/index.js'),
+    format: 'cjs'
+  },
+  // Plato compiler (CommonJS). Used by mpvue's Webpack loader.
+  'plato-factory': {
+    plato: true,
+    entry: resolve('plato/entry-runtime-factory.js'),
+    dest: resolve('packages/plato-vue-framework/factory.js'),
+    format: 'cjs',
+    plugins: [platoFactoryPlugin]
   }
 }
 
@@ -175,6 +207,8 @@ function genConfig (name) {
     external: opts.external,
     plugins: [
       replace({
+        __PLATO__: !!opts.plato,
+        __PLATO_VERSION__: !!opts.plato,
         __WEEX__: !!opts.weex,
         __WEEX_VERSION__: weexVersion,
         __VERSION__: version
