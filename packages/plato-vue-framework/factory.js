@@ -1,6 +1,6 @@
 'use strict';
 
-module.exports = function weexFactory (exports, document) {
+module.exports = function platoFactory (exports, platoDocument) {
 
 /*  */
 
@@ -1550,7 +1550,7 @@ function validateProp (
   if (
     process.env.NODE_ENV !== 'production' &&
     // skip validation for weex recycle-list child component props
-    !(true && isObject(value) && ('@binding' in value))
+    !(false && isObject(value) && ('@binding' in value))
   ) {
     assertProp(prop, key, value, vm, absent);
   }
@@ -2032,10 +2032,6 @@ function updateListeners (
     old = oldOn[name];
     event = normalizeEvent(name);
     /* istanbul ignore if */
-    if (true && isPlainObject(def)) {
-      cur = def.handler;
-      event.params = def.params;
-    }
     if (isUndef(cur)) {
       process.env.NODE_ENV !== 'production' && warn(
         "Invalid handler for event \"" + (event.name) + "\": got " + String(cur),
@@ -2060,39 +2056,6 @@ function updateListeners (
 }
 
 /*  */
-
-function mergeVNodeHook (def, hookKey, hook) {
-  if (def instanceof VNode) {
-    def = def.data.hook || (def.data.hook = {});
-  }
-  var invoker;
-  var oldHook = def[hookKey];
-
-  function wrappedHook () {
-    hook.apply(this, arguments);
-    // important: remove merged hook to ensure it's called only once
-    // and prevent memory leak
-    remove(invoker.fns, wrappedHook);
-  }
-
-  if (isUndef(oldHook)) {
-    // no existing hook
-    invoker = createFnInvoker([wrappedHook]);
-  } else {
-    /* istanbul ignore if */
-    if (isDef(oldHook.fns) && isTrue(oldHook.merged)) {
-      // already a merged invoker
-      invoker = oldHook;
-      invoker.fns.push(wrappedHook);
-    } else {
-      // existing plain hook
-      invoker = createFnInvoker([oldHook, wrappedHook]);
-    }
-  }
-
-  invoker.merged = true;
-  def[hookKey] = invoker;
-}
 
 /*  */
 
@@ -4085,197 +4048,21 @@ function mergeProps (to, from) {
 /*  */
 
 
-var RECYCLE_LIST_MARKER = '@inRecycleList';
+
 
 // Register the component hook to weex native render engine.
 // The hook will be triggered by native, not javascript.
-function registerComponentHook (
-  componentId,
-  type, // hook type, could be "lifecycle" or "instance"
-  hook, // hook name
-  fn
-) {
-  if (!document || !document.taskCenter) {
-    warn("Can't find available \"document\" or \"taskCenter\".");
-    return
-  }
-  if (typeof document.taskCenter.registerHook === 'function') {
-    return document.taskCenter.registerHook(componentId, type, hook, fn)
-  }
-  warn(("Failed to register component hook \"" + type + "@" + hook + "#" + componentId + "\"."));
-}
+
 
 // Updates the state of the component to weex native render engine.
-function updateComponentData (
-  componentId,
-  newData,
-  callback
-) {
-  if (!document || !document.taskCenter) {
-    warn("Can't find available \"document\" or \"taskCenter\".");
-    return
-  }
-  if (typeof document.taskCenter.updateData === 'function') {
-    return document.taskCenter.updateData(componentId, newData, callback)
-  }
-  warn(("Failed to update component data (" + componentId + ")."));
-}
 
 /*  */
 
 // https://github.com/Hanks10100/weex-native-directive/tree/master/component
 
-var uid$2 = 0;
-
-// override Vue.prototype._init
-function initVirtualComponent (options) {
-  if ( options === void 0 ) options = {};
-
-  var vm = this;
-  var componentId = options.componentId;
-
-  // virtual component uid
-  vm._uid = "virtual-component-" + (uid$2++);
-
-  // a flag to avoid this being observed
-  vm._isVue = true;
-  // merge options
-  if (options && options._isComponent) {
-    // optimize internal component instantiation
-    // since dynamic options merging is pretty slow, and none of the
-    // internal component options needs special treatment.
-    initInternalComponent(vm, options);
-  } else {
-    vm.$options = mergeOptions(
-      resolveConstructorOptions(vm.constructor),
-      options || {},
-      vm
-    );
-  }
-
-  /* istanbul ignore else */
-  if (process.env.NODE_ENV !== 'production') {
-    initProxy(vm);
-  } else {
-    vm._renderProxy = vm;
-  }
-
-  vm._self = vm;
-  initLifecycle(vm);
-  initEvents(vm);
-  initRender(vm);
-  callHook(vm, 'beforeCreate');
-  initInjections(vm); // resolve injections before data/props
-  initState(vm);
-  initProvide(vm); // resolve provide after data/props
-  callHook(vm, 'created');
-
-  // send initial data to native
-  var data = vm.$options.data;
-  var params = typeof data === 'function'
-    ? getData(data, vm)
-    : data || {};
-  if (isPlainObject(params)) {
-    updateComponentData(componentId, params);
-  }
-
-  registerComponentHook(componentId, 'lifecycle', 'attach', function () {
-    callHook(vm, 'beforeMount');
-
-    var updateComponent = function () {
-      vm._update(vm._vnode, false);
-    };
-    new Watcher(vm, updateComponent, noop, null, true);
-
-    vm._isMounted = true;
-    callHook(vm, 'mounted');
-  });
-
-  registerComponentHook(componentId, 'lifecycle', 'detach', function () {
-    vm.$destroy();
-  });
-}
-
-// override Vue.prototype._update
-function updateVirtualComponent (vnode) {
-  var vm = this;
-  var componentId = vm.$options.componentId;
-  if (vm._isMounted) {
-    callHook(vm, 'beforeUpdate');
-  }
-  vm._vnode = vnode;
-  if (vm._isMounted && componentId) {
-    // TODO: data should be filtered and without bindings
-    var data = Object.assign({}, vm._data);
-    updateComponentData(componentId, data, function () {
-      callHook(vm, 'updated');
-    });
-  }
-}
-
 // listening on native callback
-function resolveVirtualComponent (vnode) {
-  var BaseCtor = vnode.componentOptions.Ctor;
-  var VirtualComponent = BaseCtor.extend({});
-  var cid = VirtualComponent.cid;
-  VirtualComponent.prototype._init = initVirtualComponent;
-  VirtualComponent.prototype._update = updateVirtualComponent;
-
-  vnode.componentOptions.Ctor = BaseCtor.extend({
-    beforeCreate: function beforeCreate () {
-      // const vm: Component = this
-
-      // TODO: listen on all events and dispatch them to the
-      // corresponding virtual components according to the componentId.
-      // vm._virtualComponents = {}
-      var createVirtualComponent = function (componentId, propsData) {
-        // create virtual component
-        // const subVm =
-        new VirtualComponent({
-          componentId: componentId,
-          propsData: propsData
-        });
-        // if (vm._virtualComponents) {
-        //   vm._virtualComponents[componentId] = subVm
-        // }
-      };
-
-      registerComponentHook(cid, 'lifecycle', 'create', createVirtualComponent);
-    },
-    beforeDestroy: function beforeDestroy () {
-      delete this._virtualComponents;
-    }
-  });
-}
 
 /*  */
-
-function isRecyclableComponent (vnode) {
-  return vnode.data.attrs
-    ? (RECYCLE_LIST_MARKER in vnode.data.attrs)
-    : false
-}
-
-function renderRecyclableComponentTemplate (vnode) {
-  // $flow-disable-line
-  delete vnode.data.attrs[RECYCLE_LIST_MARKER];
-  resolveVirtualComponent(vnode);
-  var vm = createComponentInstanceForVnode(vnode);
-  var render = (vm.$options)['@render'];
-  if (render) {
-    try {
-      return render.call(vm)
-    } catch (err) {
-      handleError(err, vm, "@render");
-    }
-  } else {
-    warn(
-      "@render function not defined on component used in <recycle-list>. " +
-      "Make sure to declare `recyclable=\"true\"` on the component's template.",
-      vm
-    );
-  }
-}
 
 /*  */
 
@@ -4453,10 +4240,6 @@ function createComponent (
   // extracting cell-slot template.
   // https://github.com/Hanks10100/weex-native-directive/tree/master/component
   /* istanbul ignore if */
-  if (true && isRecyclableComponent(vnode)) {
-    return renderRecyclableComponentTemplate(vnode)
-  }
-
   return vnode
 }
 
@@ -4556,7 +4339,7 @@ function _createElement (
   if (process.env.NODE_ENV !== 'production' &&
     isDef(data) && isDef(data.key) && !isPrimitive(data.key)
   ) {
-    if (!true || !('@binding' in data.key)) {
+    {
       warn(
         'Avoid using non-primitive value as key, ' +
         'use string/number value instead.',
@@ -5262,109 +5045,56 @@ Object.defineProperty(Vue, 'FunctionalRenderContext', {
 
 Vue.version = '2.5.16';
 
-var latestNodeId = 1;
-
-function TextNode (text) {
-  this.instanceId = '';
-  this.nodeId = latestNodeId++;
-  this.parentNode = null;
-  this.nodeType = 3;
-  this.text = text;
-}
-
 /*  */
 
+// import { namespaceMap } from 'mp/util/index'
 
-var namespaceMap = {};
+var obj = {};
 
-function createElement$1 (tagName) {
-  return document.createElement(tagName)
+function createElement$1 (tagName, vnode) {
+  return obj
 }
 
 function createElementNS (namespace, tagName) {
-  return document.createElement(namespace + ':' + tagName)
+  return obj
 }
 
 function createTextNode (text) {
-  return new TextNode(text)
+  return obj
 }
 
 function createComment (text) {
-  return document.createComment(text)
+  return obj
 }
 
-function insertBefore (
-  node,
-  target,
-  before
-) {
-  if (target.nodeType === 3) {
-    if (node.type === 'text') {
-      node.setAttr('value', target.text);
-      target.parentNode = node;
-    } else {
-      var text = createElement$1('text');
-      text.setAttr('value', target.text);
-      node.insertBefore(text, before);
-    }
-    return
-  }
-  node.insertBefore(target, before);
-}
+function insertBefore (parentNode, newNode, referenceNode) {}
 
-function removeChild (node, child) {
-  if (child.nodeType === 3) {
-    node.setAttr('value', '');
-    return
-  }
-  node.removeChild(child);
-}
+function removeChild (node, child) {}
 
-function appendChild (node, child) {
-  if (child.nodeType === 3) {
-    if (node.type === 'text') {
-      node.setAttr('value', child.text);
-      child.parentNode = node;
-    } else {
-      var text = createElement$1('text');
-      text.setAttr('value', child.text);
-      node.appendChild(text);
-    }
-    return
-  }
-
-  node.appendChild(child);
-}
+function appendChild (node, child) {}
 
 function parentNode (node) {
-  return node.parentNode
+  return obj
 }
 
 function nextSibling (node) {
-  return node.nextSibling
+  return obj
 }
 
 function tagName (node) {
-  return node.type
+  return 'div'
 }
 
 function setTextContent (node, text) {
-  if (node.parentNode) {
-    node.parentNode.setAttr('value', text);
-  }
+  return obj
 }
 
 function setAttribute (node, key, val) {
-  node.setAttr(key, val);
-}
-
-function setStyleScope (node, scopeId) {
-  node.setAttr('@styleScope', scopeId);
+  return obj
 }
 
 
 var nodeOps = Object.freeze({
-	namespaceMap: namespaceMap,
 	createElement: createElement$1,
 	createElementNS: createElementNS,
 	createTextNode: createTextNode,
@@ -5376,26 +5106,10 @@ var nodeOps = Object.freeze({
 	nextSibling: nextSibling,
 	tagName: tagName,
 	setTextContent: setTextContent,
-	setAttribute: setAttribute,
-	setStyleScope: setStyleScope
+	setAttribute: setAttribute
 });
 
 /*  */
-
-var ref = {
-  create: function create (_, vnode) {
-    registerRef(vnode);
-  },
-  update: function update (oldVnode, vnode) {
-    if (oldVnode.data.ref !== vnode.data.ref) {
-      registerRef(oldVnode, true);
-      registerRef(vnode);
-    }
-  },
-  destroy: function destroy (vnode) {
-    registerRef(vnode, true);
-  }
-}
 
 function registerRef (vnode, isRemoval) {
   var key = vnode.data.ref;
@@ -5616,23 +5330,11 @@ function createPatchFunction (backend) {
 
       /* istanbul ignore if */
       {
-        // in Weex, the default insertion order is parent-first.
-        // List items can be optimized to use children-first insertion
-        // with append="tree".
-        var appendAsTree = isDef(data) && isTrue(data.appendAsTree);
-        if (!appendAsTree) {
-          if (isDef(data)) {
-            invokeCreateHooks(vnode, insertedVnodeQueue);
-          }
-          insert(parentElm, vnode.elm, refElm);
-        }
         createChildren(vnode, children, insertedVnodeQueue);
-        if (appendAsTree) {
-          if (isDef(data)) {
-            invokeCreateHooks(vnode, insertedVnodeQueue);
-          }
-          insert(parentElm, vnode.elm, refElm);
+        if (isDef(data)) {
+          invokeCreateHooks(vnode, insertedVnodeQueue);
         }
+        insert(parentElm, vnode.elm, refElm);
       }
 
       if (process.env.NODE_ENV !== 'production' && data && data.pre) {
@@ -6230,1163 +5932,20 @@ function createPatchFunction (backend) {
 
 /*  */
 
-var directives = {
-  create: updateDirectives,
-  update: updateDirectives,
-  destroy: function unbindDirectives (vnode) {
-    updateDirectives(vnode, emptyNode);
-  }
-}
-
-function updateDirectives (oldVnode, vnode) {
-  if (oldVnode.data.directives || vnode.data.directives) {
-    _update(oldVnode, vnode);
-  }
-}
-
-function _update (oldVnode, vnode) {
-  var isCreate = oldVnode === emptyNode;
-  var isDestroy = vnode === emptyNode;
-  var oldDirs = normalizeDirectives$1(oldVnode.data.directives, oldVnode.context);
-  var newDirs = normalizeDirectives$1(vnode.data.directives, vnode.context);
-
-  var dirsWithInsert = [];
-  var dirsWithPostpatch = [];
-
-  var key, oldDir, dir;
-  for (key in newDirs) {
-    oldDir = oldDirs[key];
-    dir = newDirs[key];
-    if (!oldDir) {
-      // new directive, bind
-      callHook$1(dir, 'bind', vnode, oldVnode);
-      if (dir.def && dir.def.inserted) {
-        dirsWithInsert.push(dir);
-      }
-    } else {
-      // existing directive, update
-      dir.oldValue = oldDir.value;
-      callHook$1(dir, 'update', vnode, oldVnode);
-      if (dir.def && dir.def.componentUpdated) {
-        dirsWithPostpatch.push(dir);
-      }
-    }
-  }
-
-  if (dirsWithInsert.length) {
-    var callInsert = function () {
-      for (var i = 0; i < dirsWithInsert.length; i++) {
-        callHook$1(dirsWithInsert[i], 'inserted', vnode, oldVnode);
-      }
-    };
-    if (isCreate) {
-      mergeVNodeHook(vnode, 'insert', callInsert);
-    } else {
-      callInsert();
-    }
-  }
-
-  if (dirsWithPostpatch.length) {
-    mergeVNodeHook(vnode, 'postpatch', function () {
-      for (var i = 0; i < dirsWithPostpatch.length; i++) {
-        callHook$1(dirsWithPostpatch[i], 'componentUpdated', vnode, oldVnode);
-      }
-    });
-  }
-
-  if (!isCreate) {
-    for (key in oldDirs) {
-      if (!newDirs[key]) {
-        // no longer present, unbind
-        callHook$1(oldDirs[key], 'unbind', oldVnode, oldVnode, isDestroy);
-      }
-    }
-  }
-}
-
-var emptyModifiers = Object.create(null);
-
-function normalizeDirectives$1 (
-  dirs,
-  vm
-) {
-  var res = Object.create(null);
-  if (!dirs) {
-    // $flow-disable-line
-    return res
-  }
-  var i, dir;
-  for (i = 0; i < dirs.length; i++) {
-    dir = dirs[i];
-    if (!dir.modifiers) {
-      // $flow-disable-line
-      dir.modifiers = emptyModifiers;
-    }
-    res[getRawDirName(dir)] = dir;
-    dir.def = resolveAsset(vm.$options, 'directives', dir.name, true);
-  }
-  // $flow-disable-line
-  return res
-}
-
-function getRawDirName (dir) {
-  return dir.rawName || ((dir.name) + "." + (Object.keys(dir.modifiers || {}).join('.')))
-}
-
-function callHook$1 (dir, hook, vnode, oldVnode, isDestroy) {
-  var fn = dir.def && dir.def[hook];
-  if (fn) {
-    try {
-      fn(vnode.elm, dir, vnode, oldVnode, isDestroy);
-    } catch (e) {
-      handleError(e, vnode.context, ("directive " + (dir.name) + " " + hook + " hook"));
-    }
-  }
-}
-
-var baseModules = [
-  ref,
-  directives
-]
-
 /*  */
 
-function updateAttrs (oldVnode, vnode) {
-  if (!oldVnode.data.attrs && !vnode.data.attrs) {
-    return
-  }
-  var key, cur, old;
-  var elm = vnode.elm;
-  var oldAttrs = oldVnode.data.attrs || {};
-  var attrs = vnode.data.attrs || {};
-  // clone observed objects, as the user probably wants to mutate it
-  if (attrs.__ob__) {
-    attrs = vnode.data.attrs = extend({}, attrs);
-  }
+// 暂时注释掉，看看需要的时候。
+//import platformModules from 'plato/runtime/modules/index'
 
-  var supportBatchUpdate = typeof elm.setAttrs === 'function';
-  var batchedAttrs = {};
-  for (key in attrs) {
-    cur = attrs[key];
-    old = oldAttrs[key];
-    if (old !== cur) {
-      supportBatchUpdate
-        ? (batchedAttrs[key] = cur)
-        : elm.setAttr(key, cur);
-    }
-  }
-  for (key in oldAttrs) {
-    if (attrs[key] == null) {
-      supportBatchUpdate
-        ? (batchedAttrs[key] = undefined)
-        : elm.setAttr(key);
-    }
-  }
-  if (supportBatchUpdate) {
-    elm.setAttrs(batchedAttrs);
-  }
+
+var corePatch = createPatchFunction({ nodeOps: nodeOps, modules: [] });
+
+function patch () {
+  corePatch.apply(this, arguments);
+  // 这里可以hack一个钩子(jaffezhang)
 }
 
-var attrs = {
-  create: updateAttrs,
-  update: updateAttrs
-}
-
-/*  */
-
-function updateClass (oldVnode, vnode) {
-  var el = vnode.elm;
-  var ctx = vnode.context;
-
-  var data = vnode.data;
-  var oldData = oldVnode.data;
-  if (!data.staticClass &&
-    !data.class &&
-    (!oldData || (!oldData.staticClass && !oldData.class))
-  ) {
-    return
-  }
-
-  var oldClassList = [];
-  // unlike web, weex vnode staticClass is an Array
-  var oldStaticClass = oldData.staticClass;
-  if (oldStaticClass) {
-    oldClassList.push.apply(oldClassList, oldStaticClass);
-  }
-  if (oldData.class) {
-    oldClassList.push.apply(oldClassList, oldData.class);
-  }
-
-  var classList = [];
-  // unlike web, weex vnode staticClass is an Array
-  var staticClass = data.staticClass;
-  if (staticClass) {
-    classList.push.apply(classList, staticClass);
-  }
-  if (data.class) {
-    classList.push.apply(classList, data.class);
-  }
-
-  if (typeof el.setClassList === 'function') {
-    el.setClassList(classList);
-  } else {
-    var style = getStyle(oldClassList, classList, ctx);
-    if (typeof el.setStyles === 'function') {
-      el.setStyles(style);
-    } else {
-      for (var key in style) {
-        el.setStyle(key, style[key]);
-      }
-    }
-  }
-}
-
-function getStyle (oldClassList, classList, ctx) {
-  // style is a weex-only injected object
-  // compiled from <style> tags in weex files
-  var stylesheet = ctx.$options.style || {};
-  var result = {};
-  classList.forEach(function (name) {
-    var style = stylesheet[name];
-    extend(result, style);
-  });
-  oldClassList.forEach(function (name) {
-    var style = stylesheet[name];
-    for (var key in style) {
-      if (!result.hasOwnProperty(key)) {
-        result[key] = '';
-      }
-    }
-  });
-  return result
-}
-
-var klass = {
-  create: updateClass,
-  update: updateClass
-}
-
-/*  */
-
-var target$1;
-
-function add$1 (
-  event,
-  handler,
-  once,
-  capture,
-  passive,
-  params
-) {
-  if (capture) {
-    console.log('Weex do not support event in bubble phase.');
-    return
-  }
-  if (once) {
-    var oldHandler = handler;
-    var _target = target$1; // save current target element in closure
-    handler = function (ev) {
-      var res = arguments.length === 1
-        ? oldHandler(ev)
-        : oldHandler.apply(null, arguments);
-      if (res !== null) {
-        remove$2(event, null, null, _target);
-      }
-    };
-  }
-  target$1.addEvent(event, handler, params);
-}
-
-function remove$2 (
-  event,
-  handler,
-  capture,
-  _target
-) {
-  (_target || target$1).removeEvent(event);
-}
-
-function updateDOMListeners (oldVnode, vnode) {
-  if (!oldVnode.data.on && !vnode.data.on) {
-    return
-  }
-  var on = vnode.data.on || {};
-  var oldOn = oldVnode.data.on || {};
-  target$1 = vnode.elm;
-  updateListeners(on, oldOn, add$1, remove$2, vnode.context);
-  target$1 = undefined;
-}
-
-var events = {
-  create: updateDOMListeners,
-  update: updateDOMListeners
-}
-
-/*  */
-
-var normalize = cached(camelize);
-
-function createStyle (oldVnode, vnode) {
-  if (!vnode.data.staticStyle) {
-    updateStyle(oldVnode, vnode);
-    return
-  }
-  var elm = vnode.elm;
-  var staticStyle = vnode.data.staticStyle;
-  var supportBatchUpdate = typeof elm.setStyles === 'function';
-  var batchedStyles = {};
-  for (var name in staticStyle) {
-    if (staticStyle[name]) {
-      supportBatchUpdate
-        ? (batchedStyles[normalize(name)] = staticStyle[name])
-        : elm.setStyle(normalize(name), staticStyle[name]);
-    }
-  }
-  if (supportBatchUpdate) {
-    elm.setStyles(batchedStyles);
-  }
-  updateStyle(oldVnode, vnode);
-}
-
-function updateStyle (oldVnode, vnode) {
-  if (!oldVnode.data.style && !vnode.data.style) {
-    return
-  }
-  var cur, name;
-  var elm = vnode.elm;
-  var oldStyle = oldVnode.data.style || {};
-  var style = vnode.data.style || {};
-
-  var needClone = style.__ob__;
-
-  // handle array syntax
-  if (Array.isArray(style)) {
-    style = vnode.data.style = toObject$1(style);
-  }
-
-  // clone the style for future updates,
-  // in case the user mutates the style object in-place.
-  if (needClone) {
-    style = vnode.data.style = extend({}, style);
-  }
-
-  var supportBatchUpdate = typeof elm.setStyles === 'function';
-  var batchedStyles = {};
-  for (name in oldStyle) {
-    if (!style[name]) {
-      supportBatchUpdate
-        ? (batchedStyles[normalize(name)] = '')
-        : elm.setStyle(normalize(name), '');
-    }
-  }
-  for (name in style) {
-    cur = style[name];
-    supportBatchUpdate
-      ? (batchedStyles[normalize(name)] = cur)
-      : elm.setStyle(normalize(name), cur);
-  }
-  if (supportBatchUpdate) {
-    elm.setStyles(batchedStyles);
-  }
-}
-
-function toObject$1 (arr) {
-  var res = {};
-  for (var i = 0; i < arr.length; i++) {
-    if (arr[i]) {
-      extend(res, arr[i]);
-    }
-  }
-  return res
-}
-
-var style = {
-  create: createStyle,
-  update: updateStyle
-}
-
-/*  */
-
-/**
- * Add class with compatibility for SVG since classList is not supported on
- * SVG elements in IE
- */
-
-
-/**
- * Remove class with compatibility for SVG since classList is not supported on
- * SVG elements in IE
- */
-
-/*  */
-
-function resolveTransition (def) {
-  if (!def) {
-    return
-  }
-  /* istanbul ignore else */
-  if (typeof def === 'object') {
-    var res = {};
-    if (def.css !== false) {
-      extend(res, autoCssTransition(def.name || 'v'));
-    }
-    extend(res, def);
-    return res
-  } else if (typeof def === 'string') {
-    return autoCssTransition(def)
-  }
-}
-
-var autoCssTransition = cached(function (name) {
-  return {
-    enterClass: (name + "-enter"),
-    enterToClass: (name + "-enter-to"),
-    enterActiveClass: (name + "-enter-active"),
-    leaveClass: (name + "-leave"),
-    leaveToClass: (name + "-leave-to"),
-    leaveActiveClass: (name + "-leave-active")
-  }
-});
-
-var hasTransition = inBrowser && !isIE9;
-// Transition property/event sniffing
-
-
-
-
-if (hasTransition) {
-  /* istanbul ignore if */
-  if (window.ontransitionend === undefined &&
-    window.onwebkittransitionend !== undefined
-  ) {
-    
-  }
-  if (window.onanimationend === undefined &&
-    window.onwebkitanimationend !== undefined
-  ) {
-    
-  }
-}
-
-// binding to window is necessary to make hot reload work in IE in strict mode
-var raf = inBrowser
-  ? window.requestAnimationFrame
-    ? window.requestAnimationFrame.bind(window)
-    : setTimeout
-  : /* istanbul ignore next */ function (fn) { return fn(); };
-
-var transition = {
-  create: enter,
-  activate: enter,
-  remove: leave
-}
-
-function enter (_, vnode) {
-  var el = vnode.elm;
-
-  // call leave callback now
-  if (el._leaveCb) {
-    el._leaveCb.cancelled = true;
-    el._leaveCb();
-  }
-
-  var data = resolveTransition(vnode.data.transition);
-  if (!data) {
-    return
-  }
-
-  /* istanbul ignore if */
-  if (el._enterCb) {
-    return
-  }
-
-  var enterClass = data.enterClass;
-  var enterToClass = data.enterToClass;
-  var enterActiveClass = data.enterActiveClass;
-  var appearClass = data.appearClass;
-  var appearToClass = data.appearToClass;
-  var appearActiveClass = data.appearActiveClass;
-  var beforeEnter = data.beforeEnter;
-  var enter = data.enter;
-  var afterEnter = data.afterEnter;
-  var enterCancelled = data.enterCancelled;
-  var beforeAppear = data.beforeAppear;
-  var appear = data.appear;
-  var afterAppear = data.afterAppear;
-  var appearCancelled = data.appearCancelled;
-
-  var context = activeInstance;
-  var transitionNode = activeInstance.$vnode;
-  while (transitionNode && transitionNode.parent) {
-    transitionNode = transitionNode.parent;
-    context = transitionNode.context;
-  }
-
-  var isAppear = !context._isMounted || !vnode.isRootInsert;
-
-  if (isAppear && !appear && appear !== '') {
-    return
-  }
-
-  var startClass = isAppear ? appearClass : enterClass;
-  var toClass = isAppear ? appearToClass : enterToClass;
-  var activeClass = isAppear ? appearActiveClass : enterActiveClass;
-  var beforeEnterHook = isAppear ? (beforeAppear || beforeEnter) : beforeEnter;
-  var enterHook = isAppear ? (typeof appear === 'function' ? appear : enter) : enter;
-  var afterEnterHook = isAppear ? (afterAppear || afterEnter) : afterEnter;
-  var enterCancelledHook = isAppear ? (appearCancelled || enterCancelled) : enterCancelled;
-
-  var userWantsControl =
-    enterHook &&
-    // enterHook may be a bound method which exposes
-    // the length of original fn as _length
-    (enterHook._length || enterHook.length) > 1;
-
-  var stylesheet = vnode.context.$options.style || {};
-  var startState = stylesheet[startClass];
-  var transitionProperties = (stylesheet['@TRANSITION'] && stylesheet['@TRANSITION'][activeClass]) || {};
-  var endState = getEnterTargetState(el, stylesheet, startClass, toClass, activeClass, vnode.context);
-  var needAnimation = Object.keys(endState).length > 0;
-
-  var cb = el._enterCb = once(function () {
-    if (cb.cancelled) {
-      enterCancelledHook && enterCancelledHook(el);
-    } else {
-      afterEnterHook && afterEnterHook(el);
-    }
-    el._enterCb = null;
-  });
-
-  // We need to wait until the native element has been inserted, but currently
-  // there's no API to do that. So we have to wait "one frame" - not entirely
-  // sure if this is guaranteed to be enough (e.g. on slow devices?)
-  setTimeout(function () {
-    var parent = el.parentNode;
-    var pendingNode = parent && parent._pending && parent._pending[vnode.key];
-    if (pendingNode &&
-      pendingNode.context === vnode.context &&
-      pendingNode.tag === vnode.tag &&
-      pendingNode.elm._leaveCb
-    ) {
-      pendingNode.elm._leaveCb();
-    }
-    enterHook && enterHook(el, cb);
-
-    if (needAnimation) {
-      var animation = vnode.context.$requireWeexModule('animation');
-      animation.transition(el.ref, {
-        styles: endState,
-        duration: transitionProperties.duration || 0,
-        delay: transitionProperties.delay || 0,
-        timingFunction: transitionProperties.timingFunction || 'linear'
-      }, userWantsControl ? noop : cb);
-    } else if (!userWantsControl) {
-      cb();
-    }
-  }, 16);
-
-  // start enter transition
-  beforeEnterHook && beforeEnterHook(el);
-
-  if (startState) {
-    if (typeof el.setStyles === 'function') {
-      el.setStyles(startState);
-    } else {
-      for (var key in startState) {
-        el.setStyle(key, startState[key]);
-      }
-    }
-  }
-
-  if (!needAnimation && !userWantsControl) {
-    cb();
-  }
-}
-
-function leave (vnode, rm) {
-  var el = vnode.elm;
-
-  // call enter callback now
-  if (el._enterCb) {
-    el._enterCb.cancelled = true;
-    el._enterCb();
-  }
-
-  var data = resolveTransition(vnode.data.transition);
-  if (!data) {
-    return rm()
-  }
-
-  if (el._leaveCb) {
-    return
-  }
-
-  var leaveClass = data.leaveClass;
-  var leaveToClass = data.leaveToClass;
-  var leaveActiveClass = data.leaveActiveClass;
-  var beforeLeave = data.beforeLeave;
-  var leave = data.leave;
-  var afterLeave = data.afterLeave;
-  var leaveCancelled = data.leaveCancelled;
-  var delayLeave = data.delayLeave;
-
-  var userWantsControl =
-    leave &&
-    // leave hook may be a bound method which exposes
-    // the length of original fn as _length
-    (leave._length || leave.length) > 1;
-
-  var stylesheet = vnode.context.$options.style || {};
-  var startState = stylesheet[leaveClass];
-  var endState = stylesheet[leaveToClass] || stylesheet[leaveActiveClass];
-  var transitionProperties = (stylesheet['@TRANSITION'] && stylesheet['@TRANSITION'][leaveActiveClass]) || {};
-
-  var cb = el._leaveCb = once(function () {
-    if (el.parentNode && el.parentNode._pending) {
-      el.parentNode._pending[vnode.key] = null;
-    }
-    if (cb.cancelled) {
-      leaveCancelled && leaveCancelled(el);
-    } else {
-      rm();
-      afterLeave && afterLeave(el);
-    }
-    el._leaveCb = null;
-  });
-
-  if (delayLeave) {
-    delayLeave(performLeave);
-  } else {
-    performLeave();
-  }
-
-  function performLeave () {
-    var animation = vnode.context.$requireWeexModule('animation');
-    // the delayed leave may have already been cancelled
-    if (cb.cancelled) {
-      return
-    }
-    // record leaving element
-    if (!vnode.data.show) {
-      (el.parentNode._pending || (el.parentNode._pending = {}))[vnode.key] = vnode;
-    }
-    beforeLeave && beforeLeave(el);
-
-    if (startState) {
-      animation.transition(el.ref, {
-        styles: startState
-      }, next);
-    } else {
-      next();
-    }
-
-    function next () {
-      animation.transition(el.ref, {
-        styles: endState,
-        duration: transitionProperties.duration || 0,
-        delay: transitionProperties.delay || 0,
-        timingFunction: transitionProperties.timingFunction || 'linear'
-      }, userWantsControl ? noop : cb);
-    }
-
-    leave && leave(el, cb);
-    if (!endState && !userWantsControl) {
-      cb();
-    }
-  }
-}
-
-// determine the target animation style for an entering transition.
-function getEnterTargetState (el, stylesheet, startClass, endClass, activeClass, vm) {
-  var targetState = {};
-  var startState = stylesheet[startClass];
-  var endState = stylesheet[endClass];
-  var activeState = stylesheet[activeClass];
-  // 1. fallback to element's default styling
-  if (startState) {
-    for (var key in startState) {
-      targetState[key] = el.style[key];
-      if (
-        process.env.NODE_ENV !== 'production' &&
-        targetState[key] == null &&
-        (!activeState || activeState[key] == null) &&
-        (!endState || endState[key] == null)
-      ) {
-        warn(
-          "transition property \"" + key + "\" is declared in enter starting class (." + startClass + "), " +
-          "but not declared anywhere in enter ending class (." + endClass + "), " +
-          "enter active cass (." + activeClass + ") or the element's default styling. " +
-          "Note in Weex, CSS properties need explicit values to be transitionable."
-        );
-      }
-    }
-  }
-  // 2. if state is mixed in active state, extract them while excluding
-  //    transition properties
-  if (activeState) {
-    for (var key$1 in activeState) {
-      if (key$1.indexOf('transition') !== 0) {
-        targetState[key$1] = activeState[key$1];
-      }
-    }
-  }
-  // 3. explicit endState has highest priority
-  if (endState) {
-    extend(targetState, endState);
-  }
-  return targetState
-}
-
-var platformModules = [
-  attrs,
-  klass,
-  events,
-  style,
-  transition
-]
-
-/*  */
-
-// the directive module should be applied last, after all
-// built-in modules have been applied.
-var modules = platformModules.concat(baseModules);
-
-var patch = createPatchFunction({
-  nodeOps: nodeOps,
-  modules: modules,
-  LONG_LIST_THRESHOLD: 10
-});
-
-var platformDirectives = {
-}
-
-/*  */
-
-function getVNodeType (vnode) {
-  if (!vnode.tag) {
-    return ''
-  }
-  return vnode.tag.replace(/vue\-component\-(\d+\-)?/, '')
-}
-
-function isSimpleSpan (vnode) {
-  return vnode.children &&
-    vnode.children.length === 1 &&
-    !vnode.children[0].tag
-}
-
-function parseStyle (vnode) {
-  if (!vnode || !vnode.data) {
-    return
-  }
-  var ref = vnode.data;
-  var staticStyle = ref.staticStyle;
-  var staticClass = ref.staticClass;
-  if (vnode.data.style || vnode.data.class || staticStyle || staticClass) {
-    var styles = Object.assign({}, staticStyle, vnode.data.style);
-    var cssMap = vnode.context.$options.style || {};
-    var classList = [].concat(staticClass, vnode.data.class);
-    classList.forEach(function (name) {
-      if (name && cssMap[name]) {
-        Object.assign(styles, cssMap[name]);
-      }
-    });
-    return styles
-  }
-}
-
-function convertVNodeChildren (children) {
-  if (!children.length) {
-    return
-  }
-
-  return children.map(function (vnode) {
-    var type = getVNodeType(vnode);
-    var props = { type: type };
-
-    // convert raw text node
-    if (!type) {
-      props.type = 'span';
-      props.attr = {
-        value: (vnode.text || '').trim()
-      };
-    } else {
-      props.style = parseStyle(vnode);
-      if (vnode.data) {
-        props.attr = vnode.data.attrs;
-        if (vnode.data.on) {
-          props.events = vnode.data.on;
-        }
-      }
-      if (type === 'span' && isSimpleSpan(vnode)) {
-        props.attr = props.attr || {};
-        props.attr.value = vnode.children[0].text.trim();
-        return props
-      }
-    }
-
-    if (vnode.children && vnode.children.length) {
-      props.children = convertVNodeChildren(vnode.children);
-    }
-
-    return props
-  })
-}
-
-var Richtext = {
-  name: 'richtext',
-  render: function render (h) {
-    return h('weex:richtext', {
-      on: this._events,
-      attrs: {
-        value: convertVNodeChildren(this.$options._renderChildren || [])
-      }
-    })
-  }
-}
-
-/*  */
-
-// Provides transition support for a single element/component.
-// supports transition mode (out-in / in-out)
-
-var transitionProps = {
-  name: String,
-  appear: Boolean,
-  css: Boolean,
-  mode: String,
-  type: String,
-  enterClass: String,
-  leaveClass: String,
-  enterToClass: String,
-  leaveToClass: String,
-  enterActiveClass: String,
-  leaveActiveClass: String,
-  appearClass: String,
-  appearActiveClass: String,
-  appearToClass: String,
-  duration: [Number, String, Object]
-};
-
-// in case the child is also an abstract component, e.g. <keep-alive>
-// we want to recursively retrieve the real component to be rendered
-function getRealChild (vnode) {
-  var compOptions = vnode && vnode.componentOptions;
-  if (compOptions && compOptions.Ctor.options.abstract) {
-    return getRealChild(getFirstComponentChild(compOptions.children))
-  } else {
-    return vnode
-  }
-}
-
-function extractTransitionData (comp) {
-  var data = {};
-  var options = comp.$options;
-  // props
-  for (var key in options.propsData) {
-    data[key] = comp[key];
-  }
-  // events.
-  // extract listeners and pass them directly to the transition methods
-  var listeners = options._parentListeners;
-  for (var key$1 in listeners) {
-    data[camelize(key$1)] = listeners[key$1];
-  }
-  return data
-}
-
-function placeholder (h, rawChild) {
-  if (/\d-keep-alive$/.test(rawChild.tag)) {
-    return h('keep-alive', {
-      props: rawChild.componentOptions.propsData
-    })
-  }
-}
-
-function hasParentTransition (vnode) {
-  while ((vnode = vnode.parent)) {
-    if (vnode.data.transition) {
-      return true
-    }
-  }
-}
-
-function isSameChild (child, oldChild) {
-  return oldChild.key === child.key && oldChild.tag === child.tag
-}
-
-var Transition = {
-  name: 'transition',
-  props: transitionProps,
-  abstract: true,
-
-  render: function render (h) {
-    var this$1 = this;
-
-    var children = this.$slots.default;
-    if (!children) {
-      return
-    }
-
-    // filter out text nodes (possible whitespaces)
-    children = children.filter(function (c) { return c.tag || isAsyncPlaceholder(c); });
-    /* istanbul ignore if */
-    if (!children.length) {
-      return
-    }
-
-    // warn multiple elements
-    if (process.env.NODE_ENV !== 'production' && children.length > 1) {
-      warn(
-        '<transition> can only be used on a single element. Use ' +
-        '<transition-group> for lists.',
-        this.$parent
-      );
-    }
-
-    var mode = this.mode;
-
-    // warn invalid mode
-    if (process.env.NODE_ENV !== 'production' &&
-      mode && mode !== 'in-out' && mode !== 'out-in'
-    ) {
-      warn(
-        'invalid <transition> mode: ' + mode,
-        this.$parent
-      );
-    }
-
-    var rawChild = children[0];
-
-    // if this is a component root node and the component's
-    // parent container node also has transition, skip.
-    if (hasParentTransition(this.$vnode)) {
-      return rawChild
-    }
-
-    // apply transition data to child
-    // use getRealChild() to ignore abstract components e.g. keep-alive
-    var child = getRealChild(rawChild);
-    /* istanbul ignore if */
-    if (!child) {
-      return rawChild
-    }
-
-    if (this._leaving) {
-      return placeholder(h, rawChild)
-    }
-
-    // ensure a key that is unique to the vnode type and to this transition
-    // component instance. This key will be used to remove pending leaving nodes
-    // during entering.
-    var id = "__transition-" + (this._uid) + "-";
-    child.key = child.key == null
-      ? child.isComment
-        ? id + 'comment'
-        : id + child.tag
-      : isPrimitive(child.key)
-        ? (String(child.key).indexOf(id) === 0 ? child.key : id + child.key)
-        : child.key;
-
-    var data = (child.data || (child.data = {})).transition = extractTransitionData(this);
-    var oldRawChild = this._vnode;
-    var oldChild = getRealChild(oldRawChild);
-
-    // mark v-show
-    // so that the transition module can hand over the control to the directive
-    if (child.data.directives && child.data.directives.some(function (d) { return d.name === 'show'; })) {
-      child.data.show = true;
-    }
-
-    if (
-      oldChild &&
-      oldChild.data &&
-      !isSameChild(child, oldChild) &&
-      !isAsyncPlaceholder(oldChild) &&
-      // #6687 component root is a comment node
-      !(oldChild.componentInstance && oldChild.componentInstance._vnode.isComment)
-    ) {
-      // replace old child transition data with fresh one
-      // important for dynamic transitions!
-      var oldData = oldChild.data.transition = extend({}, data);
-      // handle transition mode
-      if (mode === 'out-in') {
-        // return placeholder node and queue update when leave finishes
-        this._leaving = true;
-        mergeVNodeHook(oldData, 'afterLeave', function () {
-          this$1._leaving = false;
-          this$1.$forceUpdate();
-        });
-        return placeholder(h, rawChild)
-      } else if (mode === 'in-out') {
-        if (isAsyncPlaceholder(child)) {
-          return oldRawChild
-        }
-        var delayedLeave;
-        var performLeave = function () { delayedLeave(); };
-        mergeVNodeHook(data, 'afterEnter', performLeave);
-        mergeVNodeHook(data, 'enterCancelled', performLeave);
-        mergeVNodeHook(oldData, 'delayLeave', function (leave) { delayedLeave = leave; });
-      }
-    }
-
-    return rawChild
-  }
-}
-
-// reuse same transition component logic from web
-
-var props = extend({
-  tag: String,
-  moveClass: String
-}, transitionProps);
-
-delete props.mode;
-
-var TransitionGroup = {
-  props: props,
-
-  created: function created () {
-    var dom = this.$requireWeexModule('dom');
-    this.getPosition = function (el) { return new Promise(function (resolve, reject) {
-      dom.getComponentRect(el.ref, function (res) {
-        if (!res.result) {
-          reject(new Error(("failed to get rect for element: " + (el.tag))));
-        } else {
-          resolve(res.size);
-        }
-      });
-    }); };
-
-    var animation = this.$requireWeexModule('animation');
-    this.animate = function (el, options) { return new Promise(function (resolve) {
-      animation.transition(el.ref, options, resolve);
-    }); };
-  },
-
-  render: function render (h) {
-    var tag = this.tag || this.$vnode.data.tag || 'span';
-    var map = Object.create(null);
-    var prevChildren = this.prevChildren = this.children;
-    var rawChildren = this.$slots.default || [];
-    var children = this.children = [];
-    var transitionData = extractTransitionData(this);
-
-    for (var i = 0; i < rawChildren.length; i++) {
-      var c = rawChildren[i];
-      if (c.tag) {
-        if (c.key != null && String(c.key).indexOf('__vlist') !== 0) {
-          children.push(c);
-          map[c.key] = c
-          ;(c.data || (c.data = {})).transition = transitionData;
-        } else if (process.env.NODE_ENV !== 'production') {
-          var opts = c.componentOptions;
-          var name = opts
-            ? (opts.Ctor.options.name || opts.tag)
-            : c.tag;
-          warn(("<transition-group> children must be keyed: <" + name + ">"));
-        }
-      }
-    }
-
-    if (prevChildren) {
-      var kept = [];
-      var removed = [];
-      prevChildren.forEach(function (c) {
-        c.data.transition = transitionData;
-
-        // TODO: record before patch positions
-
-        if (map[c.key]) {
-          kept.push(c);
-        } else {
-          removed.push(c);
-        }
-      });
-      this.kept = h(tag, null, kept);
-      this.removed = removed;
-    }
-
-    return h(tag, null, children)
-  },
-
-  beforeUpdate: function beforeUpdate () {
-    // force removing pass
-    this.__patch__(
-      this._vnode,
-      this.kept,
-      false, // hydrating
-      true // removeOnly (!important, avoids unnecessary moves)
-    );
-    this._vnode = this.kept;
-  },
-
-  updated: function updated () {
-    var children = this.prevChildren;
-    var moveClass = this.moveClass || ((this.name || 'v') + '-move');
-    var moveData = children.length && this.getMoveData(children[0].context, moveClass);
-    if (!moveData) {
-      return
-    }
-
-    // TODO: finish implementing move animations once
-    // we have access to sync getComponentRect()
-
-    // children.forEach(callPendingCbs)
-
-    // Promise.all(children.map(c => {
-    //   const oldPos = c.data.pos
-    //   const newPos = c.data.newPos
-    //   const dx = oldPos.left - newPos.left
-    //   const dy = oldPos.top - newPos.top
-    //   if (dx || dy) {
-    //     c.data.moved = true
-    //     return this.animate(c.elm, {
-    //       styles: {
-    //         transform: `translate(${dx}px,${dy}px)`
-    //       }
-    //     })
-    //   }
-    // })).then(() => {
-    //   children.forEach(c => {
-    //     if (c.data.moved) {
-    //       this.animate(c.elm, {
-    //         styles: {
-    //           transform: ''
-    //         },
-    //         duration: moveData.duration || 0,
-    //         delay: moveData.delay || 0,
-    //         timingFunction: moveData.timingFunction || 'linear'
-    //       })
-    //     }
-    //   })
-    // })
-  },
-
-  methods: {
-    getMoveData: function getMoveData (context, moveClass) {
-      var stylesheet = context.$options.style || {};
-      return stylesheet['@TRANSITION'] && stylesheet['@TRANSITION'][moveClass]
-    }
-  }
-}
-
-// function callPendingCbs (c) {
-//   /* istanbul ignore if */
-//   if (c.elm._moveCb) {
-//     c.elm._moveCb()
-//   }
-//   /* istanbul ignore if */
-//   if (c.elm._enterCb) {
-//     c.elm._enterCb()
-//   }
-// }
-
-var platformComponents = {
-  Richtext: Richtext,
-  Transition: Transition,
-  TransitionGroup: TransitionGroup
-}
+/* transition 看看以后还需要么*/
 
 /*  */
 
@@ -7431,25 +5990,14 @@ function isUnknownElement$1 (tag) {
   return false
 }
 
-function query (el, document) {
-  // document is injected by weex factory wrapper
-  var placeholder = document.createComment('root');
-  placeholder.hasAttribute = placeholder.removeAttribute = function () {}; // hack for patch
-  document.documentElement.appendChild(placeholder);
-  return placeholder
-}
-
 /*  */
 
 // install platform specific utils
 Vue.config.mustUseProp = mustUseProp;
 Vue.config.isReservedTag = isReservedTag$1;
-Vue.config.isRuntimeComponent = isRuntimeComponent;
+//Vue.config.isReservedAttr = isReservedAttr
 Vue.config.isUnknownElement = isUnknownElement$1;
 
-// install platform runtime directives and components
-Vue.options.directives = platformDirectives;
-Vue.options.components = platformComponents;
 
 // install platform patch function
 Vue.prototype.__patch__ = patch;
@@ -7461,13 +6009,10 @@ Vue.prototype.$mount = function (
 ) {
   return mountComponent(
     this,
-    el && query(el, this.$document),
-    hydrating
+    undefined,
+    undefined
   )
 };
-
-// this entry is built and wrapped with a factory function
-// used to generate a fresh copy of Vue for every Weex instance.
 
 exports.Vue = Vue;
 

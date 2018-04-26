@@ -9,7 +9,7 @@ module.exports = {
   shared: resolve('src/shared'),
   web: resolve('src/platforms/web'),
   weex: resolve('src/platforms/weex'),
-  plato: path.resolve(__dirname, '../src/platforms/plato'),,
+  plato: path.resolve(__dirname, '../src/platforms/plato'),
   server: resolve('src/server'),
   entries: resolve('src/entries'),
   sfc: resolve('src/sfc')

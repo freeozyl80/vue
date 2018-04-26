@@ -24,6 +24,10 @@
     "dev:weex": "rollup -w -c scripts/config.js --environment TARGET:weex-framework",
     "dev:weex:factory": "rollup -w -c scripts/config.js --environment TARGET:weex-factory",
     "dev:weex:compiler": "rollup -w -c scripts/config.js --environment TARGET:weex-compiler ",
+    
+    "dev:plato": "rollup -w -c scripts/config.js --environment TARGET:plato-framework",
+    "dev:plato:factory": "rollup -w -c scripts/config.js --environment TARGET:plato-factory",
+    "dev:plato:compiler": "rollup -w -c scripts/config.js --environment TARGET:plato-compiler ",
     "build": "node scripts/build.js",
     "build:ssr": "npm run build -- web-runtime-cjs,web-server-renderer",
     "build:weex": "npm run build -- weex",
@@ -41,8 +45,7 @@
     "bench:ssr": "npm run build:ssr && node benchmarks/ssr/renderToString.js && node benchmarks/ssr/renderToStream.js",
     "release": "bash scripts/release.sh",
     "release:weex": "bash scripts/release-weex.sh",
-    "release:note": "node scripts/gen-release-note.js",
-    "commit": "git-cz"
+    "release:note": "node scripts/gen-release-note.js"
   },
   "gitHooks": {
     "pre-commit": "lint-staged",

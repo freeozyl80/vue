@@ -7,7 +7,7 @@ const node = require('rollup-plugin-node-resolve')
 const flow = require('rollup-plugin-flow-no-whitespace')
 const version = process.env.VERSION || require('../package.json').version
 const weexVersion = process.env.WEEX_VERSION || require('../packages/weex-vue-framework/package.json').version
-const platoVueVersion = process.env.PLATO_VUE_VERSION || require('../packages/platovue/package.json').version
+const platoVueVersion = process.env.PLATO_VUE_VERSION || require('../packages/plato/package.json').version
 
 const banner =
   '/*!\n' +
@@ -24,8 +24,6 @@ try {
 } catch (e) {}
 `
 
-
-
 const weexFactoryPlugin = {
   intro () {
     return 'module.exports = function weexFactory (exports, document) {'
@@ -36,7 +34,7 @@ const weexFactoryPlugin = {
 }
 const platoFactoryPlugin = {
   intro () {
-    return 'module.exports = function platoFactory (exports, native) {'
+    return 'module.exports = function platoFactory (exports, platoDocument) {'
   },
   outro () {
     return '}'
@@ -184,6 +182,14 @@ const builds = {
     format: 'cjs',
     external: Object.keys(require('../packages/weex-template-compiler/package.json').dependencies)
   },
+
+  'plato-compiler': {
+    weex: true,
+    entry: resolve('plato/entry-compiler.js'),
+    dest: resolve('packages/plato-template-compiler/build.js'),
+    format: 'cjs'//,
+    // external: Object.keys(require('../packages/weex-template-compiler/package.json').dependencies)
+  },
   'plato-framework': {
     plato: true,
     entry: resolve('plato/entry-framework.js'),
@@ -193,7 +199,7 @@ const builds = {
   // Plato compiler (CommonJS). Used by mpvue's Webpack loader.
   'plato-factory': {
     plato: true,
-    entry: resolve('plato/entry-runtime-factory.js'),
+    entry: resolve('plato/entry-runtime.js'),
     dest: resolve('packages/plato-vue-framework/factory.js'),
     format: 'cjs',
     plugins: [platoFactoryPlugin]

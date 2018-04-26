@@ -1,50 +1,47 @@
-import TextNode from 'plato/runtime/text-node'
+/* @flow */
 
-// this will be preserved during build
-const VueFactory = require('./factory')
+// import { namespaceMap } from 'mp/util/index'
 
-const instances = {}
-const modules = {}
-const components = {}
+const obj = {}
 
-const renderer = {
-  TextNode,
-  instances,
-  modules,
-  components
+export function createElement (tagName: string, vnode: VNode) {
+  return obj
 }
 
-/**
- * Prepare framework config, basically about the virtual-DOM and JS bridge.
- * @param {object} cfg
- */
-export function init (cfg) {
-  renderer.Document = cfg.Document  /*这个有，其他的再看*/
-  renderer.Element = cfg.Element
-  renderer.Comment = cfg.Comment
-  renderer.compileBundle = cfg.compileBundle
+export function createElementNS (namespace: string, tagName: string) {
+  return obj
 }
 
-
-/**
- * Reset framework config and clear all registrations.
- */
-export function reset () {
-  clear(instances)
-  clear(modules)
-  clear(components)
-  delete renderer.Document
-  delete renderer.Element
-  delete renderer.Comment
-  delete renderer.compileBundle
+export function createTextNode (text: string) {
+  return obj
 }
 
-/**
- * Delete all keys of an object.
- * @param {object} obj
- */
-function clear (obj) {
-  for (const key in obj) {
-    delete obj[key]
-  }
+export function createComment (text: string) {
+  return obj
+}
+
+export function insertBefore (parentNode: Node, newNode: Node, referenceNode: Node) {}
+
+export function removeChild (node: Node, child: Node) {}
+
+export function appendChild (node: Node, child: Node) {}
+
+export function parentNode (node: Node) {
+  return obj
+}
+
+export function nextSibling (node: Node) {
+  return obj
+}
+
+export function tagName (node: Element): string {
+  return 'div'
+}
+
+export function setTextContent (node: Node, text: string) {
+  return obj
+}
+
+export function setAttribute (node: Element, key: string, val: string) {
+  return obj
 }

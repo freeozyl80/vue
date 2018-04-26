@@ -10,16 +10,15 @@ import {
   query,  /* 这个看下需要还是不需要(jaffezhang) */
   mustUseProp,
   isReservedTag,
-  isReservedAttr, /* 新增(jaffezhang) */
+  // isReservedAttr, /* 新增(jaffezhang) */
   isUnknownElement
 } from 'plato/util/index'
 
 // install platform specific utils
 Vue.config.mustUseProp = mustUseProp
 Vue.config.isReservedTag = isReservedTag
-Vue.config.isReservedAttr = isReservedAttr
+// Vue.config.isReservedAttr = isReservedAttr
 Vue.config.isUnknownElement = isUnknownElement
-
 
 // install platform patch function
 Vue.prototype.__patch__ = patch
