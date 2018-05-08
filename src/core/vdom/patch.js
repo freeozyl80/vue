@@ -169,7 +169,7 @@ export function createPatchFunction (backend) {
       setScope(vnode)
 
       /* istanbul ignore if */
-      if (__WEEX__) {
+      if (__WEEX__ || __PLATO__) {
         // in Weex, the default insertion order is parent-first.
         // List items can be optimized to use children-first insertion
         // with append="tree".
@@ -315,7 +315,8 @@ export function createPatchFunction (backend) {
   // this is implemented as a special case to avoid the overhead
   // of going through the normal attribute patching process.
   function setScope (vnode) {
-    let i
+    return; //暂时没有scope的概念
+    /*let i
     if (isDef(i = vnode.fnScopeId)) {
       nodeOps.setStyleScope(vnode.elm, i)
     } else {
@@ -334,7 +335,7 @@ export function createPatchFunction (backend) {
       isDef(i = i.$options._scopeId)
     ) {
       nodeOps.setStyleScope(vnode.elm, i)
-    }
+    }*/
   }
 
   function addVnodes (parentElm, refElm, vnodes, startIdx, endIdx, insertedVnodeQueue) {
@@ -682,6 +683,7 @@ export function createPatchFunction (backend) {
   }
 
   return function patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
+    debugger;
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) invokeDestroyHook(oldVnode)
       return

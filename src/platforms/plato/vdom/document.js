@@ -4,13 +4,17 @@ import {
   appendBody,
   setBody
 } from './operation'
-import Element from './Element'
+import Element from './element'
+import Comment from './comment'
 
-class Document {
-  constructor (id) {
-    id = id ? id.toString() : ''
-    this.id = id
-    addDoc(id, this)
+function updateElement (el, changes) {
+  const attrs = changes.attrs || {}
+  for (const name in attrs) {
+    el.setAttr(name, attrs[name], true)
+  }
+  const style = changes.style || {}
+  for (const name in style) {
+    el.setStyle(name, style[name], true)
   }
 }
 
@@ -18,12 +22,15 @@ export default class Document {
   constructor (id) {
     id = id ? id.toString() : ''
     this.id = id
-    this.URL = url
+    this.nodeMap = {}
     addDoc(id, this)
+    this.createDocumentElement()
   }
+
   getRef (ref) {
     return this.nodeMap[ref]
   }
+
   createDocumentElement () {
     if (!this.documentElement) {
       const el = new Element('document')
@@ -34,7 +41,6 @@ export default class Document {
       el.ref = '_documentElement'
       this.nodeMap._documentElement = el
       this.documentElement = el
-
       Object.defineProperty(el, 'appendChild', {
         configurable: true,
         enumerable: true,
@@ -57,12 +63,6 @@ export default class Document {
     return this.documentElement
   }
 
-  /**
-	 * Create the body element.
-	 * @param {string} type
-	 * @param {objct} props
-	 * @return {object} body element
-	 */
   createBody (type, props) {
     if (!this.body) {
       const el = new Element(type, props)
@@ -72,34 +72,10 @@ export default class Document {
     return this.body
   }
 
-  /**
-	 * Create an element.
-	 * @param {string} tagName
-	 * @param {objct} props
-	 * @return {object} element
-	 */
   createElement (tagName, props) {
     return new Element(tagName, props)
   }
-
-  /**
-	 * Create an comment.
-	 * @param {string} text
-	 * @return {object} comment
-	 */
-  createComment (text) {
-    return new Comment(text)
-  }
-
-  /**
-	 * Fire an event on specified element manually.
-	 * @param {object} element
-	 * @param {string} event type
-	 * @param {object} event object
-	 * @param {object} dom changes
-	 * @param {object} options
-	 * @return {} anything returned by handler function
-	 */
+  // 这个看看能不能用到
   fireEvent (el, type, event, domChanges, options) {
     if (!el) {
       return
@@ -115,15 +91,12 @@ export default class Document {
     const isBubble = this.getRef('_root').attr['bubble'] === 'true'
     return el.fireEvent(type, event, isBubble, options)
   }
-
-  /**
-	 * Destroy current document, and remove itself form docMap.
-	 */
   destroy () {
-    this.taskCenter.destroyCallback()
     delete this.listener
     delete this.nodeMap
-    delete this.taskCenter
     removeDoc(this.id)
+  }
+  createComment (text) {
+    return new Comment(text)
   }
 }

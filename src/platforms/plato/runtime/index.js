@@ -1,5 +1,3 @@
-/* @flow */
-
 import Vue from 'core/index'
 import { patch } from 'plato/runtime/patch'
 import { mountComponent } from 'core/instance/lifecycle'
@@ -25,13 +23,13 @@ Vue.prototype.__patch__ = patch
 
 // wrap mount
 Vue.prototype.$mount = function (
-  el?: any,
-  hydrating?: boolean
-): Component {
+  el,
+  hydrating
+) {
   return mountComponent(
     this,
-    undefined,
-    undefined
+    el && query(el, this.$document),
+    hydrating
   )
 }
 

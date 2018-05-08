@@ -1,8 +1,3 @@
-/* @flow */
-
-// These util functions are split into its own file because Rollup cannot drop
-// makeMap() due to potential side effects, so these variables end up
-// bloating the web builds.
 
 import { makeMap } from 'shared/util'
 
@@ -33,17 +28,17 @@ export const isUnaryTag = makeMap(
   true
 )
 
-export function mustUseProp (tag: string, type: ?string, name: string): boolean {
+export function mustUseProp (tag, type, name) {
   return false
 }
 
-export function getTagNamespace (tag?: string): string | void { }
+export function getTagNamespace (tag) { }
 
-export function isUnknownElement (tag?: string): boolean {
+export function isUnknownElement (tag) {
   return false
 }
 
-export function query (el: string | Element, document: Object) {
+export function query (el, document) {
   // document is injected by weex factory wrapper
   const placeholder = document.createComment('root')
   placeholder.hasAttribute = placeholder.removeAttribute = function () {} // hack for patch

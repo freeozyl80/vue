@@ -2057,6 +2057,39 @@ function updateListeners (
 
 /*  */
 
+function mergeVNodeHook (def, hookKey, hook) {
+  if (def instanceof VNode) {
+    def = def.data.hook || (def.data.hook = {});
+  }
+  var invoker;
+  var oldHook = def[hookKey];
+
+  function wrappedHook () {
+    hook.apply(this, arguments);
+    // important: remove merged hook to ensure it's called only once
+    // and prevent memory leak
+    remove(invoker.fns, wrappedHook);
+  }
+
+  if (isUndef(oldHook)) {
+    // no existing hook
+    invoker = createFnInvoker([wrappedHook]);
+  } else {
+    /* istanbul ignore if */
+    if (isDef(oldHook.fns) && isTrue(oldHook.merged)) {
+      // already a merged invoker
+      invoker = oldHook;
+      invoker.fns.push(wrappedHook);
+    } else {
+      // existing plain hook
+      invoker = createFnInvoker([oldHook, wrappedHook]);
+    }
+  }
+
+  invoker.merged = true;
+  def[hookKey] = invoker;
+}
+
 /*  */
 
 function extractPropsFromVNodeData (
@@ -5045,56 +5078,106 @@ Object.defineProperty(Vue, 'FunctionalRenderContext', {
 
 Vue.version = '2.5.16';
 
-/*  */
+var latestNodeId = 1;
 
-// import { namespaceMap } from 'mp/util/index'
+function TextNode (text) {
+  this.instanceId = '';
+  this.nodeId = latestNodeId++;
+  this.parentNode = null;
+  this.nodeType = 3;
+  this.text = text;
+}
 
-var obj = {};
+var namespaceMap = {};
 
-function createElement$1 (tagName, vnode) {
-  return obj
+function createElement$1 (tagName)  {
+  return platoDocument.createElement(tagName)
 }
 
 function createElementNS (namespace, tagName) {
-  return obj
+  return platoDocument.createElement(namespace + ':' + tagName)
 }
 
 function createTextNode (text) {
-  return obj
+  return new TextNode(text)
 }
 
 function createComment (text) {
-  return obj
+  return platoDocument.createComment(text)
 }
 
-function insertBefore (parentNode, newNode, referenceNode) {}
+function insertBefore (
+  node,
+  target,
+  before
+) {
+  if (target.nodeType === 3) {
+    if (node.type === 'text') {
+      node.setAttr('value', target.text);
+      target.parentNode = node;
+    } else {
+      var text = createElement$1('text');
+      text.setAttr('value', target.text);
+      node.insertBefore(text, before);
+    }
+    return
+  }
+  node.insertBefore(target, before);
+}
 
-function removeChild (node, child) {}
+function removeChild (node, child) {
+  if (child.nodeType === 3) {
+    node.setAttr('value', '');
+    return
+  }
+  node.removeChild(child);
+}
 
-function appendChild (node, child) {}
+function appendChild (node, child) {
+  if (child.nodeType === 3) {
+    if (node.type === 'text') {
+      node.setAttr('value', child.text);
+      child.parentNode = node;
+    } else {
+      var text = createElement$1('text');
+      text.setAttr('value', child.text);
+      node.appendChild(text);
+    }
+    return
+  }
+
+  node.appendChild(child);
+}
 
 function parentNode (node) {
-  return obj
+  return node.parentNode
 }
 
 function nextSibling (node) {
-  return obj
+  return node.nextSibling
 }
 
 function tagName (node) {
-  return 'div'
+  return node.type
 }
 
-function setTextContent (node, text) {
-  return obj
+function setTextContent (nod, text) {
+  if (node.parentNode) {
+    node.parentNode.setAttr('value', text);
+  }
 }
 
 function setAttribute (node, key, val) {
-  return obj
+  node.setAttr(key, val);
 }
+// 先注释掉吧，
+// export function setStyleScope (node: WeexElement, scopeId: string) {
+//   node.setAttr('@styleScope', scopeId)
+// }
 
 
 var nodeOps = Object.freeze({
+	namespaceMap: namespaceMap,
 	createElement: createElement$1,
 	createElementNS: createElementNS,
 	createTextNode: createTextNode,
@@ -5110,6 +5193,21 @@ var nodeOps = Object.freeze({
 });
 
 /*  */
+
+var ref = {
+  create: function create (_, vnode) {
+    registerRef(vnode);
+  },
+  update: function update (oldVnode, vnode) {
+    if (oldVnode.data.ref !== vnode.data.ref) {
+      registerRef(oldVnode, true);
+      registerRef(vnode);
+    }
+  },
+  destroy: function destroy (vnode) {
+    registerRef(vnode, true);
+  }
+}
 
 function registerRef (vnode, isRemoval) {
   var key = vnode.data.ref;
@@ -5326,15 +5424,25 @@ function createPatchFunction (backend) {
       vnode.elm = vnode.ns
         ? nodeOps.createElementNS(vnode.ns, tag)
         : nodeOps.createElement(tag, vnode);
-      setScope(vnode);
-
-      /* istanbul ignore if */
       {
-        createChildren(vnode, children, insertedVnodeQueue);
-        if (isDef(data)) {
-          invokeCreateHooks(vnode, insertedVnodeQueue);
+        // in Weex, the default insertion order is parent-first.
+        // List items can be optimized to use children-first insertion
+        // with append="tree".
+        
+        var appendAsTree = isDef(data) && isTrue(data.appendAsTree);
+        if (!appendAsTree) {
+          if (isDef(data)) {
+            invokeCreateHooks(vnode, insertedVnodeQueue);
+          }
+          insert(parentElm, vnode.elm, refElm);
         }
-        insert(parentElm, vnode.elm, refElm);
+        createChildren(vnode, children, insertedVnodeQueue);
+        if (appendAsTree) {
+          if (isDef(data)) {
+            invokeCreateHooks(vnode, insertedVnodeQueue);
+          }
+          insert(parentElm, vnode.elm, refElm);
+        }
       }
 
       if (process.env.NODE_ENV !== 'production' && data && data.pre) {
@@ -5378,7 +5486,7 @@ function createPatchFunction (backend) {
     vnode.elm = vnode.componentInstance.$el;
     if (isPatchable(vnode)) {
       invokeCreateHooks(vnode, insertedVnodeQueue);
-      setScope(vnode);
+      
     } else {
       // empty component root.
       // skip all element-related modules except for ref (#3455)
@@ -5456,29 +5564,6 @@ function createPatchFunction (backend) {
   // set scope id attribute for scoped CSS.
   // this is implemented as a special case to avoid the overhead
   // of going through the normal attribute patching process.
-  function setScope (vnode) {
-    var i;
-    if (isDef(i = vnode.fnScopeId)) {
-      nodeOps.setStyleScope(vnode.elm, i);
-    } else {
-      var ancestor = vnode;
-      while (ancestor) {
-        if (isDef(i = ancestor.context) && isDef(i = i.$options._scopeId)) {
-          nodeOps.setStyleScope(vnode.elm, i);
-        }
-        ancestor = ancestor.parent;
-      }
-    }
-    // for slot content they should also get the scopeId from the host instance.
-    if (isDef(i = activeInstance) &&
-      i !== vnode.context &&
-      i !== vnode.fnContext &&
-      isDef(i = i.$options._scopeId)
-    ) {
-      nodeOps.setStyleScope(vnode.elm, i);
-    }
-  }
-
   function addVnodes (parentElm, refElm, vnodes, startIdx, endIdx, insertedVnodeQueue) {
     for (; startIdx <= endIdx; ++startIdx) {
       createElm(vnodes[startIdx], insertedVnodeQueue, parentElm, refElm, false, vnodes, startIdx);
@@ -5826,6 +5911,7 @@ function createPatchFunction (backend) {
   }
 
   return function patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
+    
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) { invokeDestroyHook(oldVnode); }
       return
@@ -5932,13 +6018,216 @@ function createPatchFunction (backend) {
 
 /*  */
 
+var directives = {
+  create: updateDirectives,
+  update: updateDirectives,
+  destroy: function unbindDirectives (vnode) {
+    updateDirectives(vnode, emptyNode);
+  }
+}
+
+function updateDirectives (oldVnode, vnode) {
+  if (oldVnode.data.directives || vnode.data.directives) {
+    _update(oldVnode, vnode);
+  }
+}
+
+function _update (oldVnode, vnode) {
+  var isCreate = oldVnode === emptyNode;
+  var isDestroy = vnode === emptyNode;
+  var oldDirs = normalizeDirectives$1(oldVnode.data.directives, oldVnode.context);
+  var newDirs = normalizeDirectives$1(vnode.data.directives, vnode.context);
+
+  var dirsWithInsert = [];
+  var dirsWithPostpatch = [];
+
+  var key, oldDir, dir;
+  for (key in newDirs) {
+    oldDir = oldDirs[key];
+    dir = newDirs[key];
+    if (!oldDir) {
+      // new directive, bind
+      callHook$1(dir, 'bind', vnode, oldVnode);
+      if (dir.def && dir.def.inserted) {
+        dirsWithInsert.push(dir);
+      }
+    } else {
+      // existing directive, update
+      dir.oldValue = oldDir.value;
+      callHook$1(dir, 'update', vnode, oldVnode);
+      if (dir.def && dir.def.componentUpdated) {
+        dirsWithPostpatch.push(dir);
+      }
+    }
+  }
+
+  if (dirsWithInsert.length) {
+    var callInsert = function () {
+      for (var i = 0; i < dirsWithInsert.length; i++) {
+        callHook$1(dirsWithInsert[i], 'inserted', vnode, oldVnode);
+      }
+    };
+    if (isCreate) {
+      mergeVNodeHook(vnode, 'insert', callInsert);
+    } else {
+      callInsert();
+    }
+  }
+
+  if (dirsWithPostpatch.length) {
+    mergeVNodeHook(vnode, 'postpatch', function () {
+      for (var i = 0; i < dirsWithPostpatch.length; i++) {
+        callHook$1(dirsWithPostpatch[i], 'componentUpdated', vnode, oldVnode);
+      }
+    });
+  }
+
+  if (!isCreate) {
+    for (key in oldDirs) {
+      if (!newDirs[key]) {
+        // no longer present, unbind
+        callHook$1(oldDirs[key], 'unbind', oldVnode, oldVnode, isDestroy);
+      }
+    }
+  }
+}
+
+var emptyModifiers = Object.create(null);
+
+function normalizeDirectives$1 (
+  dirs,
+  vm
+) {
+  var res = Object.create(null);
+  if (!dirs) {
+    // $flow-disable-line
+    return res
+  }
+  var i, dir;
+  for (i = 0; i < dirs.length; i++) {
+    dir = dirs[i];
+    if (!dir.modifiers) {
+      // $flow-disable-line
+      dir.modifiers = emptyModifiers;
+    }
+    res[getRawDirName(dir)] = dir;
+    dir.def = resolveAsset(vm.$options, 'directives', dir.name, true);
+  }
+  // $flow-disable-line
+  return res
+}
+
+function getRawDirName (dir) {
+  return dir.rawName || ((dir.name) + "." + (Object.keys(dir.modifiers || {}).join('.')))
+}
+
+function callHook$1 (dir, hook, vnode, oldVnode, isDestroy) {
+  var fn = dir.def && dir.def[hook];
+  if (fn) {
+    try {
+      fn(vnode.elm, dir, vnode, oldVnode, isDestroy);
+    } catch (e) {
+      handleError(e, vnode.context, ("directive " + (dir.name) + " " + hook + " hook"));
+    }
+  }
+}
+
+var baseModules = [
+  ref,
+  directives
+]
+
+var normalize = cached(camelize);
+
+function createStyle (oldVnode, vnode) {
+  if (!vnode.data.staticStyle) {
+    updateStyle(oldVnode, vnode);
+    return
+  }
+  var elm = vnode.elm;
+  var staticStyle = vnode.data.staticStyle;
+  var supportBatchUpdate = typeof elm.setStyles === 'function';
+  var batchedStyles = {};
+  for (var name in staticStyle) {
+    if (staticStyle[name]) {
+      supportBatchUpdate
+        ? (batchedStyles[normalize(name)] = staticStyle[name])
+        : elm.setStyle(normalize(name), staticStyle[name]);
+    }
+  }
+  if (supportBatchUpdate) {
+    elm.setStyles(batchedStyles);
+  }
+  updateStyle(oldVnode, vnode);
+}
+
+function updateStyle (oldVnode, vnode) {
+  if (!oldVnode.data.style && !vnode.data.style) {
+    return
+  }
+  var cur, name;
+  var elm = vnode.elm;
+  var oldStyle = oldVnode.data.style || {};
+  var style = vnode.data.style || {};
+
+  var needClone = style.__ob__;
+
+  // handle array syntax
+  if (Array.isArray(style)) {
+    style = vnode.data.style = toObject$1(style);
+  }
+
+  // clone the style for future updates,
+  // in case the user mutates the style object in-place.
+  if (needClone) {
+    style = vnode.data.style = extend({}, style);
+  }
+
+  var supportBatchUpdate = typeof elm.setStyles === 'function';
+  var batchedStyles = {};
+  for (name in oldStyle) {
+    if (!style[name]) {
+      supportBatchUpdate
+        ? (batchedStyles[normalize(name)] = '')
+        : elm.setStyle(normalize(name), '');
+    }
+  }
+  for (name in style) {
+    cur = style[name];
+    supportBatchUpdate
+      ? (batchedStyles[normalize(name)] = cur)
+      : elm.setStyle(normalize(name), cur);
+  }
+  if (supportBatchUpdate) {
+    elm.setStyles(batchedStyles);
+  }
+}
+
+function toObject$1 (arr) {
+  var res = {};
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i]) {
+      extend(res, arr[i]);
+    }
+  }
+  return res
+}
+
+var style = {
+  create: createStyle,
+  update: updateStyle
+}
+
+var platformModules = [
+  style
+]
+
 /*  */
 
 // 暂时注释掉，看看需要的时候。
-//import platformModules from 'plato/runtime/modules/index'
+var modules = platformModules.concat(baseModules);
 
-
-var corePatch = createPatchFunction({ nodeOps: nodeOps, modules: [] });
+var corePatch = createPatchFunction({ nodeOps: nodeOps, modules: modules });
 
 function patch () {
   corePatch.apply(this, arguments);
@@ -5946,12 +6235,6 @@ function patch () {
 }
 
 /* transition 看看以后还需要么*/
-
-/*  */
-
-// These util functions are split into its own file because Rollup cannot drop
-// makeMap() due to potential side effects, so these variables end up
-// bloating the web builds.
 
 var isReservedTag$1 = makeMap(
   'template,script,style,element,content,slot,link,meta,svg,view,' +
@@ -5990,14 +6273,19 @@ function isUnknownElement$1 (tag) {
   return false
 }
 
-/*  */
+function query (el, document) {
+  // document is injected by weex factory wrapper
+  var placeholder = document.createComment('root');
+  placeholder.hasAttribute = placeholder.removeAttribute = function () {}; // hack for patch
+  document.documentElement.appendChild(placeholder);
+  return placeholder
+}
 
 // install platform specific utils
 Vue.config.mustUseProp = mustUseProp;
 Vue.config.isReservedTag = isReservedTag$1;
-//Vue.config.isReservedAttr = isReservedAttr
+// Vue.config.isReservedAttr = isReservedAttr
 Vue.config.isUnknownElement = isUnknownElement$1;
-
 
 // install platform patch function
 Vue.prototype.__patch__ = patch;
@@ -6009,8 +6297,8 @@ Vue.prototype.$mount = function (
 ) {
   return mountComponent(
     this,
-    undefined,
-    undefined
+    el && query(el, this.$document),
+    hydrating
   )
 };
 

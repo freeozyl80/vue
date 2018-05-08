@@ -1,47 +1,88 @@
-/* @flow */
+import TextNode from 'weex/runtime/text-node'
 
-// import { namespaceMap } from 'mp/util/index'
+export const namespaceMap = {}
 
-const obj = {}
-
-export function createElement (tagName: string, vnode: VNode) {
-  return obj
+export function createElement (tagName)  {
+  return platoDocument.createElement(tagName)
 }
 
-export function createElementNS (namespace: string, tagName: string) {
-  return obj
+export function createElementNS (namespace, tagName) {
+  return platoDocument.createElement(namespace + ':' + tagName)
 }
 
-export function createTextNode (text: string) {
-  return obj
+export function createTextNode (text) {
+  return new TextNode(text)
 }
 
-export function createComment (text: string) {
-  return obj
+export function createComment (text) {
+  return platoDocument.createComment(text)
 }
 
-export function insertBefore (parentNode: Node, newNode: Node, referenceNode: Node) {}
-
-export function removeChild (node: Node, child: Node) {}
-
-export function appendChild (node: Node, child: Node) {}
-
-export function parentNode (node: Node) {
-  return obj
+export function insertBefore (
+  node,
+  target,
+  before
+) {
+  if (target.nodeType === 3) {
+    if (node.type === 'text') {
+      node.setAttr('value', target.text)
+      target.parentNode = node
+    } else {
+      const text = createElement('text')
+      text.setAttr('value', target.text)
+      node.insertBefore(text, before)
+    }
+    return
+  }
+  node.insertBefore(target, before)
 }
 
-export function nextSibling (node: Node) {
-  return obj
+export function removeChild (node, child) {
+  if (child.nodeType === 3) {
+    node.setAttr('value', '')
+    return
+  }
+  node.removeChild(child)
 }
 
-export function tagName (node: Element): string {
-  return 'div'
+export function appendChild (node, child) {
+  if (child.nodeType === 3) {
+    if (node.type === 'text') {
+      node.setAttr('value', child.text)
+      child.parentNode = node
+    } else {
+      const text = createElement('text')
+      text.setAttr('value', child.text)
+      node.appendChild(text)
+    }
+    return
+  }
+
+  node.appendChild(child)
 }
 
-export function setTextContent (node: Node, text: string) {
-  return obj
+export function parentNode (node) {
+  return node.parentNode
 }
 
-export function setAttribute (node: Element, key: string, val: string) {
-  return obj
+export function nextSibling (node) {
+  return node.nextSibling
 }
+
+export function tagName (node) {
+  return node.type
+}
+
+export function setTextContent (nod, text) {
+  if (node.parentNode) {
+    node.parentNode.setAttr('value', text)
+  }
+}
+
+export function setAttribute (node, key, val) {
+  node.setAttr(key, val)
+}
+// 先注释掉吧，
+// export function setStyleScope (node: WeexElement, scopeId: string) {
+//   node.setAttr('@styleScope', scopeId)
+// }

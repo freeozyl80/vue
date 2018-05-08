@@ -2,11 +2,13 @@ import {
   fnBridge
 } from './bridge.js'
 import {
-  proxyDocument
-} from './document.js'
+  Document,
+  Element
+} from './vdom/index.js'
 const VueFactory = require('./factory')
+global.Native = {};
+global.Api = {Document, Element};
 
-global.Native = {}
 // 测试专用
 global.nativeTestModules = [{
   'module': 'document',
@@ -119,9 +121,8 @@ global.nativeTestModules = [{
     'methodId': 1
   }]
 }]
-const instances = {}
 
-function init (cfg) {
+function init(cfg) {
   global.Native.document = cfg.document
   global.Native.CanvasModule = cfg.CanvasModule
   global.Native.Timer = cfg.Timer
@@ -132,7 +133,7 @@ function init (cfg) {
   initTimer()
 }
 
-function initNativeLog (argument) {
+function initNativeLog(argument) {
   if (typeof window !== 'object' && typeof global.nativeLog !== 'undefined') {
     global.console = {
       log: (message) => {
@@ -154,12 +155,12 @@ function initNativeLog (argument) {
   }
 }
 
-function initTimer (argument) {
+function initTimer(argument) {
   let _timerId = 0
   if (typeof setTimeout === 'undefined' || typeof clearTimeout === 'undefined') {
     global.setTimeout = (func, millsSec) => {
       const timerId = _timerId++
-      global.Native.Timer.setTimeout(timerId, func, millsSec)
+        global.Native.Timer.setTimeout(timerId, func, millsSec)
       return timerId
     }
     global.clearTimeout = (timerId) => {
@@ -170,7 +171,7 @@ function initTimer (argument) {
   if (typeof setInterval === 'undefined' || typeof clearInterval === 'undefined') {
     global.setInterval = (func, millsSec) => {
       const timerId = _timerId++
-      global.Native.Timer.setInterval(timerId, func, millsSec)
+        global.Native.Timer.setInterval(timerId, func, millsSec)
       return timerId
     }
     global.clearInterval = (timerId) => {
@@ -179,8 +180,9 @@ function initTimer (argument) {
   }
 }
 // 这里必须提前运行
-export function loadNativeModules () {
+export function loadNativeModules() {
   let nativeModules
+  let res = {}
   if (process.env.TEST) {
     nativeModules = global.nativeTestModules
   } else {
@@ -200,35 +202,49 @@ export function loadNativeModules () {
       for (const methodIndex in moduleDesc.methods) {
         const methodDesc = moduleDesc.methods[methodIndex]
         module[methodDesc.method] = (...args) => {
+          if (process.env.TEST) {
+            console.log('调用Native方法');
+            console.log(moduleDesc.moduleId, methodDesc.methodId, args);
+            return;
+          }
           return fnBridge.execute(moduleDesc.moduleId, methodDesc.methodId, args)
         }
       }
     }
     // 加载module
-    init(module)
+    res[moduleDesc.module] = module;
   }
+  init(res);
 }
 
 // 这里相当于registerApp
-export function createInstance (appKey, appCode) {
-  VueFactory(exports, global.Native.document)
-  const Vue = exports.Vue
+export function createInstance(appKey, appCode) {
   const instances = {}
+  const context = {}
+  context[appKey] = {}
+  context[appKey].document = new Document(appKey);
+
+  const exports = {}
+  VueFactory(exports, context[appKey].document)
+  const Vue = exports.Vue
+
+  Vue.prototype.$document = context[appKey].document
+  
   const instanceVars = Object.assign({
     Vue,
     process: {},
-    document: proxyDocument(platoDocument)
+    document: context[appKey].document
   })
   const AppRegistry = {
-    registerComponent: function (appKey) {
+    registerComponent: function(appKey) {
       instances[appKey] = {
-        run: function () {
+        run: function() {
           // 这里直接执行就ok
           const globalKeys = []
           const globalValues = []
-          for (const key in globalObjects) {
+          for (const key in instanceVars) {
             globalKeys.push(key)
-            globalValues.push(globalObjects[key])
+            globalValues.push(instanceVars[key])
           }
           const fn = new Function(...globalKeys, appCode)
           fn(...globalValues)
@@ -236,7 +252,7 @@ export function createInstance (appKey, appCode) {
       }
       return appKey
     },
-    runApplication: function (appKey) {
+    runApplication: function(appKey) {
       const instance = instances[appKey]
       instance.run()
     }
@@ -252,11 +268,10 @@ export function createInstance (appKey, appCode) {
   }
 
   Vue.mixin({
-    beforeCreate () {
-    },
-    mounted () {
-      global.Native.document.createFinish(appKey, options.doc.body.toJSON())
+    beforeCreate() {},
+    mounted() {
+      console.log(context[appKey].document.createBody())
+      //global.Native.document.createFinish(appKey, context[appKey].document.createBody())
     }
   })
 }
-

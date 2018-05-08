@@ -8,7 +8,7 @@ const docMap = {}
 function sendBody(doc, node) {
 	const body = node.toJSON()
 	if (global.Native.document) {
-		Native.document.createFinish(doc, body);
+		Native.document.createFinish(node.docId, body);
 	}
 }
 
@@ -24,10 +24,6 @@ export function getDoc(id) {
 
 export function removeDoc(id) {
 	delete docMap[id]
-}
-
-export function appendBody(doc, node, before) {
-
 }
 
 export function nextElement(node) {
@@ -128,6 +124,7 @@ export function linkParent(node, parent) {
 export function setBody(doc, el) {
 	el.role = 'body'
 	el.depth = 1
+	if(doc.nodeMap && doc.nodeMap[el.nodeId])
 	delete doc.nodeMap[el.nodeId]
 	el.ref = '_root'
 	doc.nodeMap._root = el
@@ -139,7 +136,7 @@ export function appendBody(doc, node, before) {
 		documentElement
 	} = doc
 
-	if (documentElement.children.length > 0 || node.parentNode) {
+	if (documentElement.pureChildren.length > 0 || node.parentNode) {
 		return
 	}
 	const children = documentElement.children
@@ -166,19 +163,11 @@ export function appendBody(doc, node, before) {
 			linkParent(node, documentElement)
 			delete doc.nodeMap[node.nodeId]
 		}
-		documentElement.children.push(node)
+		documentElement.pureChildren.push(node)
 		sendBody(doc, node)
 	} else {
+		// 这种情况应该不会出现, NodeType 8 comment
 		node.parentNode = documentElement
 		doc.nodeMap[node.ref] = node
-	}
-}
-
-export function nextElement(node) {
-	while (node) {
-		if (node.nodeType === 1) {
-			return node
-		}
-		node = node.nextSibling
 	}
 }

@@ -1,6 +1,5 @@
 import {
   getDoc,
-  getTaskCenter,
   linkParent,
   nextElement,
   previousElement,
@@ -21,7 +20,7 @@ function registerNode (docId, node) {
 }
 
 export default class Element {
-  constructor (type = DEFAULT_TAG_NAME) {
+  constructor (type = DEFAULT_TAG_NAME, props = {}) {
     this.nodeType = 1
     this.nodeId = uniqueId()
     this.ref = this.nodeId
@@ -29,11 +28,10 @@ export default class Element {
     this.attributes = props.attributes || {}
     this.style = props.style || {}
     this.classStyle = props.classStyle || {}
-
     this.event = {}
 
     this.children = []
-    // this.pureChildren = []
+    this.pureChildren = []
 
     this.parentNode = null
     this.nextSibling = null
@@ -57,19 +55,19 @@ export default class Element {
     /* istanbul ignore else */
     if (!node.parentNode) {
       linkParent(node, this)
-      insertIndex(node, this.children, this.children.length, true)
+      insertIndex(node, this.pureChildren, this.pureChildren.length, true)
       if (this.docId) {
         registerNode(this.docId, node)
       }
       if (node.nodeType === 1) {
         if (Native.document) {
-          Native.document.addElement(this.docId, this.ref, node.toJSON(), index)
+          Native.document.addElement(this.docId, this.ref, node.toJSON(), -1)
         }
       }
     } else {
       moveIndex(node, this.children, this.children.length, true)
       if (node.nodeType === 1) {
-        const index = moveIndex(node, this.children, this.children.length)
+        const index = moveIndex(node, this.pureChildren, this.pureChildren.length)
         if (Native.document) {
           Native.document.moveElement(this.docId, node.ref, this.ref, index)
         }
@@ -90,10 +88,13 @@ export default class Element {
         registerNode(this.docId, node)
       }
       if (node.nodeType === 1) {
+        const pureBefore = nextElement(before)
         const index = insertIndex(
           node,
-          this.children,
-          this.children.length
+          this.pureChildren,
+          pureBefore
+            ? this.pureChildren.indexOf(pureBefore)
+            : this.pureChildren.length
         )
         if (Native.document) {
           Native.document.addElement(this.docId, this.ref, node.toJSON(), index)
@@ -104,8 +105,10 @@ export default class Element {
       if (node.nodeType === 1) {
         const index = insertIndex(
           node,
-          this.children,
-          this.children.length
+          this.pureChildren,
+          pureBefore
+            ? this.pureChildren.indexOf(pureBefore)
+            : this.pureChildren.length
         )
         if (Native.document) {
           Native.document.addElement(this.docId, this.ref, node.toJSON(), index)
@@ -130,10 +133,9 @@ export default class Element {
       if (node.nodeType === 1) {
         const index = insertIndex(
           node,
-          this.children,
-          this.children.indexOf(after) + 1
+          this.pureChildren,
+          this.pureChildren.indexOf(previousElement(after)) + 1
         )
-        const taskCenter = getTaskCenter(this.docId)
         if (Native.document) {
           Native.document.addElement(this.docId, this.ref, node.toJSON(), index)
         }
@@ -143,8 +145,8 @@ export default class Element {
       if (node.nodeType === 1) {
         const index = moveIndex(
           node,
-          this.children,
-          this.children.indexOf(after) + 1
+          this.pureChildren,
+          this.pureChildren.indexOf(previousElement(after)) + 1
         )
         if (Native.document) {
           Native.document.addElement(this.docId, this.ref, node.toJSON(), index)
@@ -155,7 +157,7 @@ export default class Element {
   removeChild (node, preserved) {
     if (node.parentNode) {
       if (node.nodeType === 1) {
-        removeIndex(node, this.children)
+        removeIndex(node, this.pureChildren)
         if (Native.document) {
           Native.document.removeElement(this.docId, node.ref)
         }
@@ -167,14 +169,14 @@ export default class Element {
   }
   clear () {
     if (Native.document) {
-      this.children.forEach(node => {
+      this.pureChildren.forEach(node => {
         Native.document.removeElement(this.docId, node.ref)
       })
     }
     this.children.forEach(node => {
       node.destroy()
     })
-    this.children.length = 0
+    this.pureChildren.length = 0
   }
   // 这里slient代表什么呢?
   setAttr (key, value, silent) {
@@ -197,16 +199,19 @@ export default class Element {
       return
     }
     this.style[key] = value
-    if (!silent && Native.document) {
+    // 这里有一个可能是隐患的东西， this.docId来判断
+    if (!silent && Native.document && this.docId) {
       const result = {}
       result[key] = value
       Native.document.setStyles(this.docId, this.ref, result)
     }
   }
-  setStyles (batchedAttrs, silent) {
-    // 批量setStyles先不做吧
-    return
-  }
+  // 这里如果有就有问题。
+  // setStyles (batchedAttrs, silent) {
+  //   // 批量setStyles先不做吧
+  //   console.log('这里没有做哦')
+  //   return
+  // }
   setClassStyle (classStyle) {
     // reset previous class style to empty string
     for (const key in this.classStyle) {
@@ -282,7 +287,10 @@ export default class Element {
       docId: this.docId || -10000,
       attributes: this.attributes ? this.attributes : {}
     }
-    result.attributes.style = this.toStyle()
+    const styleObj = this.toStyle()
+    if(!result.attributes.style) result.attributes.style = {}
+
+    Object.assign(result.attributes.style, styleObj)
 
     const event = []
     for (const type in this.event) {
@@ -301,8 +309,8 @@ export default class Element {
     if (event.length) {
       result.event = event
     }
-    if (this.children.length) {
-      result.children = this.children.map((child) => child.toJSON())
+    if (this.pureChildren.length) {
+      result.children = this.pureChildren.map((child) => child.toJSON())
     }
     return result
   }

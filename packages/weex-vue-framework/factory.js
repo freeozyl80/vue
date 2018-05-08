@@ -2636,6 +2636,7 @@ function initLifecycle (vm) {
 
 function lifecycleMixin (Vue) {
   Vue.prototype._update = function (vnode, hydrating) {
+    
     var vm = this;
     if (vm._isMounted) {
       callHook(vm, 'beforeUpdate');
@@ -2733,6 +2734,7 @@ function mountComponent (
   el,
   hydrating
 ) {
+  
   vm.$el = el;
   if (!vm.$options.render) {
     vm.$options.render = createEmptyVNode;
@@ -5326,6 +5328,7 @@ function appendChild (node, child) {
       node.setAttr('value', child.text);
       child.parentNode = node;
     } else {
+      
       var text = createElement$1('text');
       text.setAttr('value', child.text);
       node.appendChild(text);
@@ -5513,6 +5516,7 @@ function createKeyToOldIdx (children, beginIdx, endIdx) {
 }
 
 function createPatchFunction (backend) {
+  debugger;
   var i, j;
   var cbs = {};
 
@@ -5577,6 +5581,7 @@ function createPatchFunction (backend) {
     ownerArray,
     index
   ) {
+    
     if (isDef(vnode.elm) && isDef(ownerArray)) {
       // This vnode was used in a previous render!
       // now it's used as a new node, overwriting its elm would cause
@@ -5709,6 +5714,7 @@ function createPatchFunction (backend) {
   }
 
   function insert (parent, elm, ref$$1) {
+
     if (isDef(parent)) {
       if (isDef(ref$$1)) {
         if (ref$$1.parentNode === parent) {

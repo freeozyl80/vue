@@ -1,16 +1,8 @@
 <template>
   <div style="justify-content:center">
-    <text class="freestyle">{{string}}</text>
+    <text class="freestyle" style="color:red">{{string}}</text>
   </div>
 </template>
-
-<style scoped>
-  .freestyle {
-    color: #41B883;
-    font-size: 233px;
-    text-align: center;
-  }
-</style>
 
 <script>
   module.exports = {
