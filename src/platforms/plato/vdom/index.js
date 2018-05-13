@@ -3,7 +3,7 @@ import Document from './document'
 import Comment from './comment'
 
 export {
-	Comment,
-	Document,
-	Element
+  Comment,
+  Document,
+  Element
 }

@@ -5516,7 +5516,6 @@ function createKeyToOldIdx (children, beginIdx, endIdx) {
 }
 
 function createPatchFunction (backend) {
-  debugger;
   var i, j;
   var cbs = {};
 
@@ -6130,6 +6129,7 @@ function createPatchFunction (backend) {
   }
 
   return function patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
+    debugger;
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) { invokeDestroyHook(oldVnode); }
       return

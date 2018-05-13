@@ -55,7 +55,7 @@ export function updateListeners (
     old = oldOn[name]
     event = normalizeEvent(name)
     /* istanbul ignore if */
-    if (__WEEX__ && isPlainObject(def)) {
+    if ((__WEEX__ || __PLATO__)&& isPlainObject(def)) {
       cur = def.handler
       event.params = def.params
     }

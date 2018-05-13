@@ -16,11 +16,12 @@ const banner =
   ' * Released under the MIT License.\n' +
   ' */'
 
-const platoBanner = `// fix env
+const platoBanner =`// fix env
 try {
   if (!global) global = {};
   global.process = global.process || {};
   global.process.env = global.process.env || {};
+
 } catch (e) {}
 `
 
@@ -202,7 +203,8 @@ const builds = {
     entry: resolve('plato/entry-runtime.js'),
     dest: resolve('packages/plato-vue-framework/factory.js'),
     format: 'cjs',
-    plugins: [platoFactoryPlugin]
+    plugins: [platoFactoryPlugin],
+    banner: platoBanner
   }
 }
 

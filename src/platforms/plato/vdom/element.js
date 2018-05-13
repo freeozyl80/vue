@@ -187,7 +187,7 @@ export default class Element {
     if (!silent && Native.document) {
       const result = {}
       result[key] = value
-      Native.document.setStyles(this.docId, this.ref, result)
+      Native.document.setAttr(this.docId, this.ref, result)
     }
   }
   setAttrs (batchedAttrs, silent) {
@@ -283,12 +283,12 @@ export default class Element {
   toJSON () {
     const result = {
       id: this.ref,
-      type: this.type,
+      type: this.type == 'div' ? 'view': this.type,
       docId: this.docId || -10000,
       attributes: this.attributes ? this.attributes : {}
     }
     const styleObj = this.toStyle()
-    if(!result.attributes.style) result.attributes.style = {}
+    if (!result.attributes.style) result.attributes.style = {}
 
     Object.assign(result.attributes.style, styleObj)
 

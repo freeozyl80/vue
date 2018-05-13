@@ -5,9 +5,16 @@ import {
   Document,
   Element
 } from './vdom/index.js'
+import {
+  getDoc
+} from './vdom/operation.js'
+
 const VueFactory = require('./factory')
-global.Native = {};
-global.Api = {Document, Element};
+global.Native = {}
+global.Api = {
+  Document,
+  Element
+}
 
 // 测试专用
 global.nativeTestModules = [{
@@ -182,7 +189,7 @@ function initTimer(argument) {
 // 这里必须提前运行
 export function loadNativeModules() {
   let nativeModules
-  let res = {}
+  const res = {}
   if (process.env.TEST) {
     nativeModules = global.nativeTestModules
   } else {
@@ -203,40 +210,48 @@ export function loadNativeModules() {
         const methodDesc = moduleDesc.methods[methodIndex]
         module[methodDesc.method] = (...args) => {
           if (process.env.TEST) {
-            console.log('调用Native方法');
-            console.log(moduleDesc.moduleId, methodDesc.methodId, args);
-            return;
+            console.log('调用Native方法')
+            console.log(moduleDesc.moduleId, methodDesc.methodId, args)
+            return
           }
+          global.nativeLog('2', moduleDesc.moduleId, methodDesc.methodId, args);
           return fnBridge.execute(moduleDesc.moduleId, methodDesc.methodId, args)
         }
       }
     }
     // 加载module
-    res[moduleDesc.module] = module;
+    res[moduleDesc.module] = module
   }
-  init(res);
+  init(res)
 }
 
 // 这里相当于registerApp
-export function createInstance(appKey, appCode) {
+
+export function createInstance(appKey, docId) {
   const instances = {}
   const context = {}
   context[appKey] = {}
-  context[appKey].document = new Document(appKey);
+  context[appKey].document = new Document(docId)
 
   const exports = {}
   VueFactory(exports, context[appKey].document)
   const Vue = exports.Vue
 
   Vue.prototype.$document = context[appKey].document
-  
+
   const instanceVars = Object.assign({
     Vue,
-    process: {},
+    global: {
+      process: {
+        env: {
+          VUE_ENV: 'PLATO'
+        }
+      }
+    },
     document: context[appKey].document
   })
   const AppRegistry = {
-    registerComponent: function(appKey) {
+    registerComponent: function(appKey, appCode) {
       instances[appKey] = {
         run: function() {
           // 这里直接执行就ok
@@ -250,6 +265,12 @@ export function createInstance(appKey, appCode) {
           fn(...globalValues)
         }
       }
+      if (process.env.TEST) {
+        setTimeout(() => {
+          const instance = instances[appKey]
+          instance.run()
+        }, 0)
+      }
       return appKey
     },
     runApplication: function(appKey) {
@@ -257,21 +278,27 @@ export function createInstance(appKey, appCode) {
       instance.run()
     }
   }
-  if (process.env.TEST) {
-    AppRegistry.registerComponent(appKey)
-    setTimeout(() => {
-      const instance = instances[appKey]
-      instance.run()
-    }, 0)
-  } else {
+  if (!process.env.TEST) {
     fnBridge.registerCallableModule('AppRegistry', AppRegistry)
+    createEventCenter();
   }
 
   Vue.mixin({
     beforeCreate() {},
     mounted() {
-      console.log(context[appKey].document.createBody())
-      //global.Native.document.createFinish(appKey, context[appKey].document.createBody())
+      global.Native.document.updateFinish(docId)
     }
   })
+  return AppRegistry;
+}
+
+function createEventCenter() {
+  const EventCenter = {
+      fireEvent:function(docId, id, type, evt) {
+          global.nativeLog('2', '触发事件了')
+          global.nativeLog('2', JSON.stringify(getDoc(docId).nodeMap));
+          getDoc(docId).fireEvent(getDoc(docId).nodeMap[id], type, evt)
+      }
+  };
+  fnBridge.registerCallableModule('EventCenter', EventCenter);
 }

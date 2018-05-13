@@ -1,3 +1,11 @@
+// fix env
+try {
+  if (!global) global = {};
+  global.process = global.process || {};
+  global.process.env = global.process.env || {};
+
+} catch (e) {}
+
 'use strict';
 
 module.exports = function platoFactory (exports, platoDocument) {
@@ -693,9 +701,6 @@ Dep.prototype.notify = function notify () {
   }
 };
 
-// the current target watcher being evaluated.
-// this is globally unique because there could be only one
-// watcher being evaluated at any time.
 Dep.target = null;
 var targetStack = [];
 
@@ -1095,11 +1100,6 @@ function dependArray (value) {
 
 /*  */
 
-/**
- * Option overwriting strategies are functions that handle
- * how to merge a parent option value and a child option
- * value into the final value.
- */
 var strats = config.optionMergeStrategies;
 
 /**
@@ -2032,6 +2032,10 @@ function updateListeners (
     old = oldOn[name];
     event = normalizeEvent(name);
     /* istanbul ignore if */
+    if ((false || true)&& isPlainObject(def)) {
+      cur = def.handler;
+      event.params = def.params;
+    }
     if (isUndef(cur)) {
       process.env.NODE_ENV !== 'production' && warn(
         "Invalid handler for event \"" + (event.name) + "\": got " + String(cur),
@@ -2160,18 +2164,6 @@ function checkProp (
 
 /*  */
 
-// The template compiler attempts to minimize the need for normalization by
-// statically analyzing the template at compile time.
-//
-// For plain HTML markup, normalization can be completely skipped because the
-// generated render function is guaranteed to return Array<VNode>. There are
-// two cases where extra normalization is needed:
-
-// 1. When the children contains components - because a functional component
-// may return an Array instead of a single root. In this case, just a simple
-// normalization is needed - if any child is an Array, we flatten the whole
-// thing with Array.prototype.concat. It is guaranteed to be only 1-level deep
-// because functional components already normalize their own children.
 function simpleNormalizeChildren (children) {
   for (var i = 0; i < children.length; i++) {
     if (Array.isArray(children[i])) {
@@ -3679,9 +3671,6 @@ function resolveInject (inject, vm) {
 
 /*  */
 
-/**
- * Runtime helper for rendering v-for lists.
- */
 function renderList (
   val,
   render
@@ -3713,9 +3702,6 @@ function renderList (
 
 /*  */
 
-/**
- * Runtime helper for rendering <slot>
- */
 function renderSlot (
   name,
   fallback,
@@ -3762,9 +3748,6 @@ function renderSlot (
 
 /*  */
 
-/**
- * Runtime helper for resolving filters
- */
 function resolveFilter (id) {
   return resolveAsset(this.$options, 'filters', id, true) || identity
 }
@@ -3803,9 +3786,6 @@ function checkKeyCodes (
 
 /*  */
 
-/**
- * Runtime helper for merging v-bind="object" into a VNode's data.
- */
 function bindObjectProps (
   data,
   tag,
@@ -4081,21 +4061,197 @@ function mergeProps (to, from) {
 /*  */
 
 
-
+var RECYCLE_LIST_MARKER = '@inRecycleList';
 
 // Register the component hook to weex native render engine.
 // The hook will be triggered by native, not javascript.
-
+function registerComponentHook (
+  componentId,
+  type, // hook type, could be "lifecycle" or "instance"
+  hook, // hook name
+  fn
+) {
+  if (!document || !document.taskCenter) {
+    warn("Can't find available \"document\" or \"taskCenter\".");
+    return
+  }
+  if (typeof document.taskCenter.registerHook === 'function') {
+    return document.taskCenter.registerHook(componentId, type, hook, fn)
+  }
+  warn(("Failed to register component hook \"" + type + "@" + hook + "#" + componentId + "\"."));
+}
 
 // Updates the state of the component to weex native render engine.
+function updateComponentData (
+  componentId,
+  newData,
+  callback
+) {
+  if (!document || !document.taskCenter) {
+    warn("Can't find available \"document\" or \"taskCenter\".");
+    return
+  }
+  if (typeof document.taskCenter.updateData === 'function') {
+    return document.taskCenter.updateData(componentId, newData, callback)
+  }
+  warn(("Failed to update component data (" + componentId + ")."));
+}
 
 /*  */
 
 // https://github.com/Hanks10100/weex-native-directive/tree/master/component
 
+var uid$2 = 0;
+
+// override Vue.prototype._init
+function initVirtualComponent (options) {
+  if ( options === void 0 ) options = {};
+
+  var vm = this;
+  var componentId = options.componentId;
+
+  // virtual component uid
+  vm._uid = "virtual-component-" + (uid$2++);
+
+  // a flag to avoid this being observed
+  vm._isVue = true;
+  // merge options
+  if (options && options._isComponent) {
+    // optimize internal component instantiation
+    // since dynamic options merging is pretty slow, and none of the
+    // internal component options needs special treatment.
+    initInternalComponent(vm, options);
+  } else {
+    vm.$options = mergeOptions(
+      resolveConstructorOptions(vm.constructor),
+      options || {},
+      vm
+    );
+  }
+
+  /* istanbul ignore else */
+  if (process.env.NODE_ENV !== 'production') {
+    initProxy(vm);
+  } else {
+    vm._renderProxy = vm;
+  }
+
+  vm._self = vm;
+  initLifecycle(vm);
+  initEvents(vm);
+  initRender(vm);
+  callHook(vm, 'beforeCreate');
+  initInjections(vm); // resolve injections before data/props
+  initState(vm);
+  initProvide(vm); // resolve provide after data/props
+  callHook(vm, 'created');
+
+  // send initial data to native
+  var data = vm.$options.data;
+  var params = typeof data === 'function'
+    ? getData(data, vm)
+    : data || {};
+  if (isPlainObject(params)) {
+    updateComponentData(componentId, params);
+  }
+
+  registerComponentHook(componentId, 'lifecycle', 'attach', function () {
+    callHook(vm, 'beforeMount');
+
+    var updateComponent = function () {
+      vm._update(vm._vnode, false);
+    };
+    new Watcher(vm, updateComponent, noop, null, true);
+
+    vm._isMounted = true;
+    callHook(vm, 'mounted');
+  });
+
+  registerComponentHook(componentId, 'lifecycle', 'detach', function () {
+    vm.$destroy();
+  });
+}
+
+// override Vue.prototype._update
+function updateVirtualComponent (vnode) {
+  var vm = this;
+  var componentId = vm.$options.componentId;
+  if (vm._isMounted) {
+    callHook(vm, 'beforeUpdate');
+  }
+  vm._vnode = vnode;
+  if (vm._isMounted && componentId) {
+    // TODO: data should be filtered and without bindings
+    var data = Object.assign({}, vm._data);
+    updateComponentData(componentId, data, function () {
+      callHook(vm, 'updated');
+    });
+  }
+}
+
 // listening on native callback
+function resolveVirtualComponent (vnode) {
+  var BaseCtor = vnode.componentOptions.Ctor;
+  var VirtualComponent = BaseCtor.extend({});
+  var cid = VirtualComponent.cid;
+  VirtualComponent.prototype._init = initVirtualComponent;
+  VirtualComponent.prototype._update = updateVirtualComponent;
+
+  vnode.componentOptions.Ctor = BaseCtor.extend({
+    beforeCreate: function beforeCreate () {
+      // const vm: Component = this
+
+      // TODO: listen on all events and dispatch them to the
+      // corresponding virtual components according to the componentId.
+      // vm._virtualComponents = {}
+      var createVirtualComponent = function (componentId, propsData) {
+        // create virtual component
+        // const subVm =
+        new VirtualComponent({
+          componentId: componentId,
+          propsData: propsData
+        });
+        // if (vm._virtualComponents) {
+        //   vm._virtualComponents[componentId] = subVm
+        // }
+      };
+
+      registerComponentHook(cid, 'lifecycle', 'create', createVirtualComponent);
+    },
+    beforeDestroy: function beforeDestroy () {
+      delete this._virtualComponents;
+    }
+  });
+}
 
 /*  */
+
+function isRecyclableComponent (vnode) {
+  return vnode.data.attrs
+    ? (RECYCLE_LIST_MARKER in vnode.data.attrs)
+    : false
+}
+
+function renderRecyclableComponentTemplate (vnode) {
+  // $flow-disable-line
+  delete vnode.data.attrs[RECYCLE_LIST_MARKER];
+  resolveVirtualComponent(vnode);
+  var vm = createComponentInstanceForVnode(vnode);
+  var render = (vm.$options)['@render'];
+  if (render) {
+    try {
+      return render.call(vm)
+    } catch (err) {
+      handleError(err, vm, "@render");
+    }
+  } else {
+    warn(
+      "@render function not defined on component used in <recycle-list>. " +
+      "Make sure to declare `recyclable=\"true\"` on the component's template.",
+      vm
+    );
+  }
+}
 
 /*  */
 
@@ -4273,6 +4429,10 @@ function createComponent (
   // extracting cell-slot template.
   // https://github.com/Hanks10100/weex-native-directive/tree/master/component
   /* istanbul ignore if */
+  if ((false || true) && isRecyclableComponent(vnode)) {
+    return renderRecyclableComponentTemplate(vnode)
+  }
+
   return vnode
 }
 
@@ -4372,7 +4532,7 @@ function _createElement (
   if (process.env.NODE_ENV !== 'production' &&
     isDef(data) && isDef(data.key) && !isPrimitive(data.key)
   ) {
-    {
+    if (!(false || true) || !('@binding' in data.key)) {
       warn(
         'Avoid using non-primitive value as key, ' +
         'use string/number value instead.',
@@ -5090,7 +5250,7 @@ function TextNode (text) {
 
 var namespaceMap = {};
 
-function createElement$1 (tagName)  {
+function createElement$1 (tagName) {
   return platoDocument.createElement(tagName)
 }
 
@@ -5428,7 +5588,6 @@ function createPatchFunction (backend) {
         // in Weex, the default insertion order is parent-first.
         // List items can be optimized to use children-first insertion
         // with append="tree".
-        
         var appendAsTree = isDef(data) && isTrue(data.appendAsTree);
         if (!appendAsTree) {
           if (isDef(data)) {
@@ -5911,7 +6070,7 @@ function createPatchFunction (backend) {
   }
 
   return function patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
-    
+    debugger
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) { invokeDestroyHook(oldVnode); }
       return
@@ -6218,13 +6377,68 @@ var style = {
   update: updateStyle
 }
 
+var target$1;
+
+function add$1 (
+  event,
+  handler,
+  once,
+  capture,
+  passive,
+  params
+) {
+  debugger
+  if (capture) {
+    console.log('Plato do not support event in bubble phase.');
+    return
+  }
+  if (once) {
+    var oldHandler = handler;
+    var _target = target$1; // save current target element in closure
+    handler = function (ev) {
+      var res = arguments.length === 1
+        ? oldHandler(ev)
+        : oldHandler.apply(null, arguments);
+      if (res !== null) {
+        remove$2(event, null, null, _target);
+      }
+    };
+  }
+  target$1.addEvent(event, handler, params);
+}
+
+function remove$2 (
+  event,
+  handler,
+  capture,
+  _target
+) {
+  (_target || target$1).removeEvent(event);
+}
+
+function updateDOMListeners (oldVnode, vnode) {
+  if (!oldVnode.data.on && !vnode.data.on) {
+    return
+  }
+  var on = vnode.data.on || {};
+  var oldOn = oldVnode.data.on || {};
+  target$1 = vnode.elm;
+  updateListeners(on, oldOn, add$1, remove$2, vnode.context);
+  target$1 = undefined;
+}
+
+var events = {
+  create: updateDOMListeners,
+  update: updateDOMListeners
+}
+
 var platformModules = [
-  style
+  style,
+  events
 ]
 
 /*  */
 
-// 暂时注释掉，看看需要的时候。
 var modules = platformModules.concat(baseModules);
 
 var corePatch = createPatchFunction({ nodeOps: nodeOps, modules: modules });
@@ -6281,7 +6495,6 @@ function query (el, document) {
   return placeholder
 }
 
-// install platform specific utils
 Vue.config.mustUseProp = mustUseProp;
 Vue.config.isReservedTag = isReservedTag$1;
 // Vue.config.isReservedAttr = isReservedAttr

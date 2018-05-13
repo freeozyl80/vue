@@ -65,175 +65,173 @@ global._jsf = fnBridge = {
 };
 
 var nextNodeRef = 1;
-function uniqueId() {
-	return (nextNodeRef++).toString()
+function uniqueId () {
+  return (nextNodeRef++).toString()
 }
 var docMap = {};
 
-
-function sendBody(doc, node) {
-	var body = node.toJSON();
-	if (global.Native.document) {
-		Native.document.createFinish(node.docId, body);
-	}
+function sendBody (doc, node) {
+  var body = node.toJSON();
+  if (global.Native.document) {
+    Native.document.createBody(node.docId, body);
+  }
 }
 
-function addDoc(id, doc) {
-	if (id) {
-		docMap[id] = doc;
-	}
+function addDoc (id, doc) {
+  if (id) {
+    docMap[id] = doc;
+  }
 }
 
-function getDoc(id) {
-	return docMap[id]
+function getDoc (id) {
+  return docMap[id]
 }
 
-function removeDoc(id) {
-	delete docMap[id];
+function removeDoc (id) {
+  delete docMap[id];
 }
 
-function nextElement(node) {
-	while (node) {
-		if (node.nodeType === 1) {
-			return node
-		}
-		node = node.nextSibling;
-	}
+function nextElement (node) {
+  while (node) {
+    if (node.nodeType === 1) {
+      return node
+    }
+    node = node.nextSibling;
+  }
 }
 
-function previousElement(node) {
-	while (node) {
-		if (node.nodeType === 1) {
-			return node
-		}
-		node = node.previousSibling;
-	}
+function previousElement (node) {
+  while (node) {
+    if (node.nodeType === 1) {
+      return node
+    }
+    node = node.previousSibling;
+  }
 }
 
-function insertIndex(target, list, newIndex, changeSibling) {
-	/* istanbul ignore next */
-	if (newIndex < 0) {
-		newIndex = 0;
-	}
-	var before = list[newIndex - 1];
-	var after = list[newIndex];
-	list.splice(newIndex, 0, target);
-	if (changeSibling) {
-		before && (before.nextSibling = target);
-		target.previousSibling = before;
-		target.nextSibling = after;
-		after && (after.previousSibling = target);
-	}
-	return newIndex
+function insertIndex (target, list, newIndex, changeSibling) {
+  /* istanbul ignore next */
+  if (newIndex < 0) {
+    newIndex = 0;
+  }
+  var before = list[newIndex - 1];
+  var after = list[newIndex];
+  list.splice(newIndex, 0, target);
+  if (changeSibling) {
+    before && (before.nextSibling = target);
+    target.previousSibling = before;
+    target.nextSibling = after;
+    after && (after.previousSibling = target);
+  }
+  return newIndex
 }
 
-function moveIndex(target, list, newIndex, changeSibling) {
-	var index = list.indexOf(target);
-	/* istanbul ignore next */
-	if (index < 0) {
-		return -1
-	}
-	if (changeSibling) {
-		var before = list[index - 1];
-		var after = list[index + 1];
-		before && (before.nextSibling = after);
-		after && (after.previousSibling = before);
-	}
-	list.splice(index, 1);
-	var newIndexAfter = newIndex;
-	if (index <= newIndex) {
-		newIndexAfter = newIndex - 1;
-	}
-	var beforeNew = list[newIndexAfter - 1];
-	var afterNew = list[newIndexAfter];
-	list.splice(newIndexAfter, 0, target);
-	if (changeSibling) {
-		beforeNew && (beforeNew.nextSibling = target);
-		target.previousSibling = beforeNew;
-		target.nextSibling = afterNew;
-		afterNew && (afterNew.previousSibling = target);
-	}
-	if (index === newIndexAfter) {
-		return -1
-	}
-	return newIndex
+function moveIndex (target, list, newIndex, changeSibling) {
+  var index = list.indexOf(target);
+  /* istanbul ignore next */
+  if (index < 0) {
+    return -1
+  }
+  if (changeSibling) {
+    var before = list[index - 1];
+    var after = list[index + 1];
+    before && (before.nextSibling = after);
+    after && (after.previousSibling = before);
+  }
+  list.splice(index, 1);
+  var newIndexAfter = newIndex;
+  if (index <= newIndex) {
+    newIndexAfter = newIndex - 1;
+  }
+  var beforeNew = list[newIndexAfter - 1];
+  var afterNew = list[newIndexAfter];
+  list.splice(newIndexAfter, 0, target);
+  if (changeSibling) {
+    beforeNew && (beforeNew.nextSibling = target);
+    target.previousSibling = beforeNew;
+    target.nextSibling = afterNew;
+    afterNew && (afterNew.previousSibling = target);
+  }
+  if (index === newIndexAfter) {
+    return -1
+  }
+  return newIndex
 }
 
-function removeIndex(target, list, changeSibling) {
-	var index = list.indexOf(target);
-	/* istanbul ignore next */
-	if (index < 0) {
-		return
-	}
-	if (changeSibling) {
-		var before = list[index - 1];
-		var after = list[index + 1];
-		before && (before.nextSibling = after);
-		after && (after.previousSibling = before);
-	}
-	list.splice(index, 1);
+function removeIndex (target, list, changeSibling) {
+  var index = list.indexOf(target);
+  /* istanbul ignore next */
+  if (index < 0) {
+    return
+  }
+  if (changeSibling) {
+    var before = list[index - 1];
+    var after = list[index + 1];
+    before && (before.nextSibling = after);
+    after && (after.previousSibling = before);
+  }
+  list.splice(index, 1);
 }
 
-function linkParent(node, parent) {
-	node.parentNode = parent;
-	if (parent.docId) {
-		node.docId = parent.docId;
-		node.ownerDocument = parent.ownerDocument;
-		node.ownerDocument.nodeMap[node.nodeId] = node;
-		node.depth = parent.depth + 1;
-	}
-	node.children.forEach(function (child) {
-		linkParent(child, node);
-	});
+function linkParent (node, parent) {
+  node.parentNode = parent;
+  if (parent.docId) {
+    node.docId = parent.docId;
+    node.ownerDocument = parent.ownerDocument;
+    node.ownerDocument.nodeMap[node.nodeId] = node;
+    node.depth = parent.depth + 1;
+  }
+  node.children.forEach(function (child) {
+    linkParent(child, node);
+  });
 }
 
-function setBody(doc, el) {
-	el.role = 'body';
-	el.depth = 1;
-	if(doc.nodeMap && doc.nodeMap[el.nodeId])
-	{ delete doc.nodeMap[el.nodeId]; }
-	el.ref = '_root';
-	doc.nodeMap._root = el;
-	doc.body = el;
+function setBody (doc, el) {
+  el.role = 'body';
+  el.depth = 1;
+  if (doc.nodeMap && doc.nodeMap[el.nodeId]) { delete doc.nodeMap[el.nodeId]; }
+  el.ref = '_root';
+  doc.nodeMap._root = el;
+  doc.body = el;
 }
 
-function appendBody(doc, node, before) {
-	var documentElement = doc.documentElement;
+function appendBody (doc, node, before) {
+  var documentElement = doc.documentElement;
 
-	if (documentElement.pureChildren.length > 0 || node.parentNode) {
-		return
-	}
-	var children = documentElement.children;
-	var beforeIndex = children.indexOf(before);
-	if (beforeIndex < 0) {
-		children.push(node);
-	} else {
-		children.splice(beforeIndex, 0, node);
-	}
+  if (documentElement.pureChildren.length > 0 || node.parentNode) {
+    return
+  }
+  var children = documentElement.children;
+  var beforeIndex = children.indexOf(before);
+  if (beforeIndex < 0) {
+    children.push(node);
+  } else {
+    children.splice(beforeIndex, 0, node);
+  }
 
-	if (node.nodeType === 1) {
-		if (node.role === 'body') {
-			node.docId = doc.id;
-			node.ownerDocument = doc;
-			node.parentNode = documentElement;
-			linkParent(node, documentElement);
-		} else {
-			node.children.forEach(function (child) {
-				child.parentNode = node;
-			});
-			setBody(doc, node);
-			node.docId = doc.id;
-			node.ownerDocument = doc;
-			linkParent(node, documentElement);
-			delete doc.nodeMap[node.nodeId];
-		}
-		documentElement.pureChildren.push(node);
-		sendBody(doc, node);
-	} else {
-		// 这种情况应该不会出现, NodeType 8 comment
-		node.parentNode = documentElement;
-		doc.nodeMap[node.ref] = node;
-	}
+  if (node.nodeType === 1) {
+    if (node.role === 'body') {
+      node.docId = doc.id;
+      node.ownerDocument = doc;
+      node.parentNode = documentElement;
+      linkParent(node, documentElement);
+    } else {
+      node.children.forEach(function (child) {
+        child.parentNode = node;
+      });
+      setBody(doc, node);
+      node.docId = doc.id;
+      node.ownerDocument = doc;
+      linkParent(node, documentElement);
+      delete doc.nodeMap[node.nodeId];
+    }
+    documentElement.pureChildren.push(node);
+    sendBody(doc, node);
+  } else {
+    // 这种情况应该不会出现, NodeType 8 comment
+    node.parentNode = documentElement;
+    doc.nodeMap[node.ref] = node;
+  }
 }
 
 var BUBBLE_EVENTS = [
@@ -418,7 +416,7 @@ Element.prototype.setAttr = function setAttr (key, value, silent) {
   if (!silent && Native.document) {
     var result = {};
     result[key] = value;
-    Native.document.setStyles(this.docId, this.ref, result);
+    Native.document.setAttr(this.docId, this.ref, result);
   }
 };
 Element.prototype.setAttrs = function setAttrs (batchedAttrs, silent) {
@@ -518,13 +516,12 @@ Element.prototype.toJSON = function toJSON () {
 
   var result = {
     id: this.ref,
-    type: this.type,
+    type: this.type == 'div' ? 'view': this.type,
     docId: this.docId || -10000,
     attributes: this.attributes ? this.attributes : {}
   };
-  debugger;
   var styleObj = this.toStyle();
-  if(!result.attributes.style) { result.attributes.style = {}; }
+  if (!result.attributes.style) { result.attributes.style = {}; }
 
   Object.assign(result.attributes.style, styleObj);
 
@@ -550,7 +547,7 @@ Element.prototype.toJSON = function toJSON () {
   return result
 };
 
-var Comment = function Comment(value) {
+var Comment = function Comment (value) {
   this.nodeId = uniqueId();
   this.parentNode = null;
   this.nextSibling = null;
@@ -654,6 +651,10 @@ Document.prototype.createElement = function createElement (tagName, props) {
 };
 // 这个看看能不能用到
 Document.prototype.fireEvent = function fireEvent (el, type, event, domChanges, options) {
+  global.nativeLog('2', '这里进入了');
+  global.nativeLog('2', el);
+  global.nativeLog('2', type);
+  global.nativeLog('2', event);
   if (!el) {
     return
   }
@@ -665,7 +666,7 @@ Document.prototype.fireEvent = function fireEvent (el, type, event, domChanges, 
   if (domChanges) {
     updateElement(el, domChanges);
   }
-  var isBubble = this.getRef('_root').attr['bubble'] === 'true';
+  var isBubble = this.getRef('_root').attributes['bubble'] === 'true';
   return el.fireEvent(type, event, isBubble, options)
 };
 Document.prototype.destroy = function destroy () {
@@ -679,7 +680,10 @@ Document.prototype.createComment = function createComment (text) {
 
 var VueFactory = require('./factory');
 global.Native = {};
-global.Api = {Document: Document, Element: Element};
+global.Api = {
+  Document: Document,
+  Element: Element
+};
 
 // 测试专用
 global.nativeTestModules = [{
@@ -880,8 +884,9 @@ function loadNativeModules() {
           if (process.env.TEST) {
             console.log('调用Native方法');
             console.log(moduleDesc.moduleId, methodDesc.methodId, args);
-            return;
+            return
           }
+          global.nativeLog('2', moduleDesc.moduleId, methodDesc.methodId, args);
           return fnBridge.execute(moduleDesc.moduleId, methodDesc.methodId, args)
         };
       };
@@ -897,25 +902,32 @@ function loadNativeModules() {
 }
 
 // 这里相当于registerApp
-function createInstance(appKey, appCode) {
+
+function createInstance(appKey, docId) {
   var instances = {};
   var context = {};
   context[appKey] = {};
-  context[appKey].document = new Document(appKey);
+  context[appKey].document = new Document(docId);
 
   var exports = {};
   VueFactory(exports, context[appKey].document);
   var Vue = exports.Vue;
 
   Vue.prototype.$document = context[appKey].document;
-  
+
   var instanceVars = Object.assign({
     Vue: Vue,
-    process: {},
+    global: {
+      process: {
+        env: {
+          VUE_ENV: 'PLATO'
+        }
+      }
+    },
     document: context[appKey].document
   });
   var AppRegistry = {
-    registerComponent: function(appKey) {
+    registerComponent: function(appKey, appCode) {
       instances[appKey] = {
         run: function() {
           // 这里直接执行就ok
@@ -929,6 +941,12 @@ function createInstance(appKey, appCode) {
           fn.apply(void 0, globalValues);
         }
       };
+      if (process.env.TEST) {
+        setTimeout(function () {
+          var instance = instances[appKey];
+          instance.run();
+        }, 0);
+      }
       return appKey
     },
     runApplication: function(appKey) {
@@ -936,23 +954,29 @@ function createInstance(appKey, appCode) {
       instance.run();
     }
   };
-  if (process.env.TEST) {
-    AppRegistry.registerComponent(appKey);
-    setTimeout(function () {
-      var instance = instances[appKey];
-      instance.run();
-    }, 0);
-  } else {
+  if (!process.env.TEST) {
     fnBridge.registerCallableModule('AppRegistry', AppRegistry);
+    createEventCenter();
   }
 
   Vue.mixin({
     beforeCreate: function beforeCreate() {},
     mounted: function mounted() {
-      console.log(context[appKey].document.createBody());
-      //global.Native.document.createFinish(appKey, context[appKey].document.createBody())
+      global.Native.document.updateFinish(docId);
     }
   });
+  return AppRegistry;
+}
+
+function createEventCenter() {
+  var EventCenter = {
+      fireEvent:function(docId, id, type, evt) {
+          global.nativeLog('2', '触发事件了');
+          global.nativeLog('2', JSON.stringify(getDoc(docId).nodeMap));
+          getDoc(docId).fireEvent(getDoc(docId).nodeMap[id], type, evt);
+      }
+  };
+  fnBridge.registerCallableModule('EventCenter', EventCenter);
 }
 
 exports.loadNativeModules = loadNativeModules;

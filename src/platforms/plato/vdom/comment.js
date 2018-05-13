@@ -4,7 +4,7 @@ import {
 } from './operation'
 
 export default class Comment {
-  constructor(value) {
+  constructor (value) {
     this.nodeId = uniqueId()
     this.parentNode = null
     this.nextSibling = null
@@ -23,10 +23,10 @@ export default class Comment {
    * Convert to HTML comment string.
    * @return {stirng} html
    */
-  toString() {
+  toString () {
     return '<!-- ' + this.value + ' -->'
   }
-  destroy() {
+  destroy () {
     const doc = getDoc(this.docId)
     if (doc) {
       delete this.docId

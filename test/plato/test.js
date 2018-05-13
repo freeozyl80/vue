@@ -6,28 +6,47 @@ process.env.TEST = true
 const styleRE = /<\s*style\s*\w*>([^(<\/)]*)<\/\s*style\s*>/g
 const scriptRE = /<\s*script.*>([^]*)<\/\s*script\s*>/
 const templateRE = /<\s*template\s*([^>]*)>([^]*)<\/\s*template\s*>/
-function readFile(filename) {
-	return fs.readFileSync(path.resolve(__dirname, './', filename), 'utf8')
+function readFile (filename) {
+  return fs.readFileSync(path.resolve(__dirname, './', filename), 'utf8')
 }
 
-function parseStatic(fns) {
-	return '[' + fns.map(fn => `function () { ${fn} }`).join(',') + ']'
+function parseStatic (fns) {
+  return '[' + fns.map(fn => `function () { ${fn} }`).join(',') + ']'
 }
+function compileAndStringify (template) {
+  const { render, staticRenderFns } = compile(template)
+  return {
+    renderComponent: `function () { ${render} }`,
+    staticRenderFnsComponent: parseStatic(staticRenderFns)
+  }
+}
+function compileVue (source, componentName) {
+  return new Promise((resolve, reject) => {
+  	const { renderComponent, staticRenderFnsComponent } = compileAndStringify(`<text>Hello {{x}}</text>`)
+	const Components = `{
+        sub: {
+          data: function () {
+            return { x: 'Sub' }
+          },
+          render: ${renderComponent},
+          staticRenderFns: ${staticRenderFnsComponent}
+        }
+      }`
+	source = source.replace('COMPONENTS', Components);
 
-function compileVue(source, componentName) {
-	return new Promise((resolve, reject) => {
-		const scriptMatch = scriptRE.exec(source)
-		const script = scriptMatch ? scriptMatch[1] : ''
-		const templateMatch = templateRE.exec(source)
-		const compileOptions = {}
-		// 超大渲染列表暂时不要
-		/* if (/\s*recyclable\=?/i.test(templateMatch[1])) {
+    const scriptMatch = scriptRE.exec(source)
+    const script = scriptMatch ? scriptMatch[1] : ''
+    const templateMatch = templateRE.exec(source)
+    const compileOptions = {}
+    // 超大渲染列表暂时不要
+    /* if (/\s*recyclable\=?/i.test(templateMatch[1])) {
 		  compileOptions.recyclable = true
 		}*/
-		const res = compile(templateMatch[2], compileOptions)
+    const res = compile(templateMatch[2], compileOptions)
 
-		const name = 'test_case_' + (Math.random() * 99999999).toFixed(0)
-		const generateCode = styles => (`
+    const name = 'test_case_' + (Math.random() * 99999999).toFixed(0)
+    
+    const generateCode = styles => (`
       var ${name} = Object.assign({
         _scopeId: "${name}",
         style: ${JSON.stringify(styles)},
@@ -39,23 +58,23 @@ function compileVue(source, componentName) {
         ${script};
         return module.exports;
       })());
-    ` + (componentName ?
-			`Vue.component('${componentName}', ${name});\n` :
-			`${name}.el = 'body';new Vue(${name});`))
-		// 暂时先不支持class吧，内联的css能解决就好了
-		// let cssText = ''
-		// let styleMatch = null
-		// while ((styleMatch = styleRE.exec(source))) {
-		// 	cssText += `\n${styleMatch[1]}\n`
-		// }
-		// styler.parse(cssText, (error, result) => {
-		// 	if (error) {
-		// 		return reject(error)
-		// 	}
-		// 	resolve(generateCode(result.jsonStyle))
-		// })
-		resolve(generateCode({}))
-	})
+    ` + (componentName
+      ? `Vue.component('${componentName}', ${name});\n`
+      : `${name}.el = 'body';new Vue(${name});`))
+    // 暂时先不支持class吧，内联的css能解决就好了
+    // let cssText = ''
+    // let styleMatch = null
+    // while ((styleMatch = styleRE.exec(source))) {
+    // 	cssText += `\n${styleMatch[1]}\n`
+    // }
+    // styler.parse(cssText, (error, result) => {
+    // 	if (error) {
+    // 		return reject(error)
+    // 	}
+    // 	resolve(generateCode(result.jsonStyle))
+    // })
+    resolve(generateCode({}))
+  })
 }
 
 /* function createInstance(id, code, ...args) {
@@ -90,9 +109,11 @@ function compileVue(source, componentName) {
 const source = readFile('sample.vue')
 
 compileVue(source).then(code => {
-	const id = String(Date.now() * Math.random())
-	VueFrameWork.loadNativeModules()
-	const instance = VueFrameWork.createInstance(id, code)
+  const id = String(Date.now() * Math.random())
+  const docId = id
+  VueFrameWork.loadNativeModules()
+  const instance = VueFrameWork.createInstance(id, docId);
+  instance.registerComponent(id, code);
 }).catch((e) => {
-	console.log(e)
+  console.log(e)
 })

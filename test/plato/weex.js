@@ -9,11 +9,11 @@ const styleRE = /<\s*style\s*\w*>([^(<\/)]*)<\/\s*style\s*>/g
 const scriptRE = /<\s*script.*>([^]*)<\/\s*script\s*>/
 const templateRE = /<\s*template\s*([^>]*)>([^]*)<\/\s*template\s*>/
 
-function readFile(filename) {
+function readFile (filename) {
   return fs.readFileSync(path.resolve(__dirname, './', filename), 'utf8')
 }
 
-function readObject(filename) {
+function readObject (filename) {
   return (new Function(`return ${readFile(filename)}`))()
 }
 
@@ -22,15 +22,15 @@ console.debug = () => {}
 // http://stackoverflow.com/a/35478115
 const matchOperatorsRe = /[|\\{}()[\]^$+*?.]/g
 
-function strToRegExp(str) {
+function strToRegExp (str) {
   return new RegExp(str.replace(matchOperatorsRe, '\\$&'))
 }
 
-function parseStatic(fns) {
+function parseStatic (fns) {
   return '[' + fns.map(fn => `function () { ${fn} }`).join(',') + ']'
 }
 
-function compileAndStringify(template) {
+function compileAndStringify (template) {
   const {
     render,
     staticRenderFns
@@ -46,7 +46,7 @@ function compileAndStringify(template) {
  * @param {string} source raw text of *.vue file
  * @param {string} componentName whether compile to a component
  */
-function compileVue(source, componentName) {
+function compileVue (source, componentName) {
   return new Promise((resolve, reject) => {
     if (!templateRE.test(source)) {
       return reject('No Template!')
@@ -74,9 +74,9 @@ function compileVue(source, componentName) {
         ${script};
         return module.exports;
       })());
-    ` + (componentName ?
-      `Vue.component('${componentName}', ${name});\n` :
-      `${name}.el = 'body';new Vue(${name});`))
+    ` + (componentName
+      ? `Vue.component('${componentName}', ${name});\n`
+      : `${name}.el = 'body';new Vue(${name});`))
 
     let cssText = ''
     let styleMatch = null
@@ -93,7 +93,7 @@ function compileVue(source, componentName) {
   })
 }
 
-function compileWithDeps(entryPath, deps) {
+function compileWithDeps (entryPath, deps) {
   return new Promise((resolve, reject) => {
     if (Array.isArray(deps)) {
       Promise.all(deps.map(dep => {
@@ -107,15 +107,15 @@ function compileWithDeps(entryPath, deps) {
   })
 }
 
-function isObject(object) {
+function isObject (object) {
   return object !== null && typeof object === 'object'
 }
 
-function isEmptyObject(object) {
+function isEmptyObject (object) {
   return isObject(object) && Object.keys(object).length < 1
 }
 
-function omitUseless(object) {
+function omitUseless (object) {
   if (isObject(object)) {
     delete object.ref
     for (const key in object) {
@@ -134,12 +134,12 @@ function omitUseless(object) {
   return object
 }
 
-function getRoot(instance) {
+function getRoot (instance) {
   return omitUseless(instance.$getRoot())
 }
 
 // Get all binding events in the instance
-function getEvents(instance) {
+function getEvents (instance) {
   const events = []
   const recordEvent = node => {
     if (!node) {
@@ -161,14 +161,14 @@ function getEvents(instance) {
   return events
 }
 
-function fireEvent(instance, ref, type, event = {}) {
+function fireEvent (instance, ref, type, event = {}) {
   const el = instance.document.getRef(ref)
   if (el) {
     instance.document.fireEvent(el, type, event)
   }
 }
 
-function createInstance(id, code, ...args) {
+function createInstance (id, code, ...args) {
   WeexRuntime.config.frameworks = {
     Vue
   }
@@ -192,7 +192,7 @@ function createInstance(id, code, ...args) {
   return instance
 }
 
-function compileAndExecute(template, additional = '') {
+function compileAndExecute (template, additional = '') {
   return new Promise(resolve => {
     const id = String(Date.now() * Math.random())
     const {
@@ -211,7 +211,7 @@ function compileAndExecute(template, additional = '') {
   })
 }
 
-function syncPromise(arr) {
+function syncPromise (arr) {
   let p = Promise.resolve()
   arr.forEach(item => {
     p = p.then(item)
@@ -219,7 +219,7 @@ function syncPromise(arr) {
   return p
 }
 
-function checkRefresh(instance, data, checker) {
+function checkRefresh (instance, data, checker) {
   return () => new Promise(res => {
     instance.$refresh(data)
     setTimeout(() => {
@@ -229,8 +229,8 @@ function checkRefresh(instance, data, checker) {
   })
 }
 
-function addTaskHook(hook) {
-  global.callNative = function callNative(id, tasks) {
+function addTaskHook (hook) {
+  global.callNative = function callNative (id, tasks) {
     if (Array.isArray(tasks) && typeof hook === 'function') {
       tasks.forEach(task => {
         hook(id, {
@@ -243,11 +243,11 @@ function addTaskHook(hook) {
   }
 }
 
-function resetTaskHook() {
+function resetTaskHook () {
   delete global.callNative
 }
 
-function createRenderTestCase(name) {
+function createRenderTestCase (name) {
   const source = readFile(`${name}.vue`)
   return done => {
     compileVue(source).then(code => {
@@ -263,9 +263,16 @@ function createRenderTestCase(name) {
 }
 
 compileAndExecute(`
-      <div style="color:red">
-        <div style="font-size: 100">Hello World</div>
+      <div @click="foo">
+        <text>Hello {{x}}</text>
       </div>
+    `, `
+      data: { x: 'World' },
+      methods: {
+        foo: function () {
+          this.x = 'Weex'
+        }
+      }
     `).then(instance => {
   console.log(instance)
 })

@@ -77,6 +77,10 @@ export default class Document {
   }
   // 这个看看能不能用到
   fireEvent (el, type, event, domChanges, options) {
+    global.nativeLog('2', '这里进入了');
+    global.nativeLog('2', el);
+    global.nativeLog('2', type);
+    global.nativeLog('2', event);
     if (!el) {
       return
     }
@@ -88,7 +92,7 @@ export default class Document {
     if (domChanges) {
       updateElement(el, domChanges)
     }
-    const isBubble = this.getRef('_root').attr['bubble'] === 'true'
+    const isBubble = this.getRef('_root').attributes['bubble'] === 'true'
     return el.fireEvent(type, event, isBubble, options)
   }
   destroy () {

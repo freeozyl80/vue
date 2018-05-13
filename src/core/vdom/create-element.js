@@ -71,7 +71,7 @@ export function _createElement (
   if (process.env.NODE_ENV !== 'production' &&
     isDef(data) && isDef(data.key) && !isPrimitive(data.key)
   ) {
-    if (!__WEEX__ || !('@binding' in data.key)) {
+    if (!(__WEEX__ || __PLATO__) || !('@binding' in data.key)) {
       warn(
         'Avoid using non-primitive value as key, ' +
         'use string/number value instead.',

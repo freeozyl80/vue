@@ -205,7 +205,7 @@ export function createComponent (
   // extracting cell-slot template.
   // https://github.com/Hanks10100/weex-native-directive/tree/master/component
   /* istanbul ignore if */
-  if (__WEEX__ && isRecyclableComponent(vnode)) {
+  if ((__WEEX__ || __PLATO__) && isRecyclableComponent(vnode)) {
     return renderRecyclableComponentTemplate(vnode)
   }
 

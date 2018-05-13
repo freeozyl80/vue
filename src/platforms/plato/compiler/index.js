@@ -12,7 +12,7 @@ import {
   isReservedTag,
   canBeLeftOpenTag,
   getTagNamespace
-} from '../util/element'
+} from '../util/index'
 
 export const baseOptions: PlatoCompilerOptions = {
   modules,

@@ -2,7 +2,7 @@ import TextNode from 'weex/runtime/text-node'
 
 export const namespaceMap = {}
 
-export function createElement (tagName)  {
+export function createElement (tagName) {
   return platoDocument.createElement(tagName)
 }
 
