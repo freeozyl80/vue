@@ -357,7 +357,7 @@ const VueFrameWork = __webpack_require__(8)
 const source =
 	`<template>
 	  <div v-bind:style="{ width: '800px', height: '400px', backgroundColor: color}">
-	    <div v-on:click="test(1)">click</div>
+	    <div v-on:click="test(1)"><text>click<text></div>
 	    <sub></sub>
 	    <text style="backgroundColor: #3d3d3d">{{string}}</text>
 	    <div v-for="item in list">
@@ -392,28 +392,28 @@ const styleRE = /<\s*style\s*\w*>([^(<\/)]*)<\/\s*style\s*>/g
 const scriptRE = /<\s*script.*>([^]*)<\/\s*script\s*>/
 const templateRE = /<\s*template\s*([^>]*)>([^]*)<\/\s*template\s*>/
 
-function parseStatic(fns) {
-	return '[' + fns.map(fn => `function () { ${fn} }`).join(',') + ']'
+function parseStatic (fns) {
+  return '[' + fns.map(fn => `function () { ${fn} }`).join(',') + ']'
 }
 
-function compileAndStringify(template) {
-	const {
-		render,
-		staticRenderFns
-	} = compile(template)
-	return {
-		renderComponent: `function () { ${render} }`,
-		staticRenderFnsComponent: parseStatic(staticRenderFns)
-	}
+function compileAndStringify (template) {
+  const {
+    render,
+    staticRenderFns
+  } = compile(template)
+  return {
+    renderComponent: `function () { ${render} }`,
+    staticRenderFnsComponent: parseStatic(staticRenderFns)
+  }
 }
 
-function compileVue(source, componentName) {
-	return new Promise((resolve, reject) => {
-		const {
-			renderComponent,
-			staticRenderFnsComponent
-		} = compileAndStringify(`<text style="fontSize: 24px">Hello, {{x}}</text>`)
-		const Components = `{
+function compileVue (source, componentName) {
+  return new Promise((resolve, reject) => {
+    const {
+      renderComponent,
+      staticRenderFnsComponent
+    } = compileAndStringify(`<text style="fontSize: 24px">Hello, {{x}}</text>`)
+    const Components = `{
 	        sub: {
 	          data: function () {
 	            return { x: 'This is child Componets' }
@@ -422,18 +422,18 @@ function compileVue(source, componentName) {
 	          staticRenderFns: ${staticRenderFnsComponent}
 	        }
 	      }`
-		source = source.replace('COMPONENTS', Components);
+    source = source.replace('COMPONENTS', Components)
 
-		const scriptMatch = scriptRE.exec(source)
-		const script = scriptMatch ? scriptMatch[1] : ''
-		const templateMatch = templateRE.exec(source)
-		const compileOptions = {}
+    const scriptMatch = scriptRE.exec(source)
+    const script = scriptMatch ? scriptMatch[1] : ''
+    const templateMatch = templateRE.exec(source)
+    const compileOptions = {}
 
-		const res = compile(templateMatch[2], compileOptions)
+    const res = compile(templateMatch[2], compileOptions)
 
-		const name = 'test_case_' + (Math.random() * 99999999).toFixed(0)
+    const name = 'test_case_' + (Math.random() * 99999999).toFixed(0)
 
-		const generateCode = styles => (`
+    const generateCode = styles => (`
 			const ${name} = Object.assign({
 			  _scopeId: "${name}",
 			  style: ${JSON.stringify(styles)},
@@ -445,23 +445,24 @@ function compileVue(source, componentName) {
 			  ${script};
 			  return module.exports;
 			})());
-		` + (componentName ?
-			`Vue.component('${componentName}', ${name});\n` :
-			`${name}.el = 'body';new Vue(${name});`))
-		resolve(generateCode({}))
-	})
+		` + (componentName
+      ? `Vue.component('${componentName}', ${name});\n`
+      : `${name}.el = 'body';new Vue(${name});`))
+    resolve(generateCode({}))
+  })
 }
 
 compileVue(source).then(code => {
-	const id = 'App'
-	const docId = 1;
-	VueFrameWork.loadNativeModules()
-	const instance = VueFrameWork.createInstance(id, docId)
+  const id = 'App'
+  const docId = 1
+  VueFrameWork.loadNativeModules()
+  const instance = VueFrameWork.createInstance(id, docId)
 
-	instance.registerComponent(id, code)
+  instance.registerComponent(id, code)
 }).catch((e) => {
-	global.nativeLog('2', e)
+  global.nativeLog('2', e)
 })
+
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
 
 /***/ }),
@@ -5328,7 +5329,8 @@ Element.prototype.addEvent = function addEvent (type, handler, params) {
       handler: handler,
       params: params
     };
-    if (Native.document) {
+    // 这里有一个可能是隐患的东西， this.docId来判断
+    if (Native.document && this.docId) {
       Native.document.addEvent(this.docId, this.ref, type);
     }
   }
@@ -5380,7 +5382,7 @@ Element.prototype.toJSON = function toJSON () {
 
   var result = {
     id: this.ref,
-    type: this.type == 'div' ? 'view': this.type,
+    type: this.type == 'div' ? 'view' : this.type,
     docId: this.docId || -10000,
     attributes: this.attributes ? this.attributes : {}
   };
@@ -5662,7 +5664,7 @@ global.nativeTestModules = [{
   }]
 }];
 
-function init(cfg) {
+function init (cfg) {
   global.Native.document = cfg.document;
   global.Native.CanvasModule = cfg.CanvasModule;
   global.Native.Timer = cfg.Timer;
@@ -5673,7 +5675,7 @@ function init(cfg) {
   initTimer();
 }
 
-function initNativeLog(argument) {
+function initNativeLog (argument) {
   if (typeof window !== 'object' && typeof global.nativeLog !== 'undefined') {
     global.console = {
       log: function (message) {
@@ -5695,12 +5697,12 @@ function initNativeLog(argument) {
   }
 }
 
-function initTimer(argument) {
+function initTimer (argument) {
   var _timerId = 0;
   if (typeof setTimeout === 'undefined' || typeof clearTimeout === 'undefined') {
     global.setTimeout = function (func, millsSec) {
       var timerId = _timerId++;
-        global.Native.Timer.setTimeout(timerId, func, millsSec);
+      global.Native.Timer.setTimeout(timerId, func, millsSec);
       return timerId
     };
     global.clearTimeout = function (timerId) {
@@ -5711,7 +5713,7 @@ function initTimer(argument) {
   if (typeof setInterval === 'undefined' || typeof clearInterval === 'undefined') {
     global.setInterval = function (func, millsSec) {
       var timerId = _timerId++;
-        global.Native.Timer.setInterval(timerId, func, millsSec);
+      global.Native.Timer.setInterval(timerId, func, millsSec);
       return timerId
     };
     global.clearInterval = function (timerId) {
@@ -5720,7 +5722,7 @@ function initTimer(argument) {
   }
 }
 // 这里必须提前运行
-function loadNativeModules() {
+function loadNativeModules () {
   var nativeModules;
   var res = {};
   if (process.env.TEST) {
@@ -5767,7 +5769,7 @@ function loadNativeModules() {
 
 // 这里相当于registerApp
 
-function createInstance(appKey, docId) {
+function createInstance (appKey, docId) {
   var instances = {};
   var context = {};
   context[appKey] = {};
@@ -5791,9 +5793,9 @@ function createInstance(appKey, docId) {
     document: context[appKey].document
   });
   var AppRegistry = {
-    registerComponent: function(appKey, appCode) {
+    registerComponent: function (appKey, appCode) {
       instances[appKey] = {
-        run: function() {
+        run: function () {
           // 这里直接执行就ok
           var globalKeys = [];
           var globalValues = [];
@@ -5813,7 +5815,7 @@ function createInstance(appKey, docId) {
       }
       return appKey
     },
-    runApplication: function(appKey) {
+    runApplication: function (appKey) {
       var instance = instances[appKey];
       instance.run();
     }
@@ -5824,21 +5826,21 @@ function createInstance(appKey, docId) {
   }
 
   Vue.mixin({
-    beforeCreate: function beforeCreate() {},
-    mounted: function mounted() {
+    beforeCreate: function beforeCreate () {},
+    mounted: function mounted () {
       global.Native.document.updateFinish(docId);
     }
   });
-  return AppRegistry;
+  return AppRegistry
 }
 
-function createEventCenter() {
+function createEventCenter () {
   var EventCenter = {
-      fireEvent:function(docId, id, type, evt) {
-          global.nativeLog('2', '触发事件了');
-          global.nativeLog('2', JSON.stringify(getDoc(docId).nodeMap));
-          getDoc(docId).fireEvent(getDoc(docId).nodeMap[id], type, evt);
-      }
+    fireEvent: function (docId, id, type, evt) {
+      global.nativeLog('2', '触发事件了');
+      global.nativeLog('2', JSON.stringify(getDoc(docId).nodeMap));
+      getDoc(docId).fireEvent(getDoc(docId).nodeMap[id], type, evt);
+    }
   };
   fnBridge.registerCallableModule('EventCenter', EventCenter);
 }
@@ -6555,6 +6557,9 @@ Dep.prototype.notify = function notify () {
   }
 };
 
+// the current target watcher being evaluated.
+// this is globally unique because there could be only one
+// watcher being evaluated at any time.
 Dep.target = null;
 var targetStack = [];
 
@@ -6954,6 +6959,11 @@ function dependArray (value) {
 
 /*  */
 
+/**
+ * Option overwriting strategies are functions that handle
+ * how to merge a parent option value and a child option
+ * value into the final value.
+ */
 var strats = config.optionMergeStrategies;
 
 /**
@@ -7886,7 +7896,7 @@ function updateListeners (
     old = oldOn[name];
     event = normalizeEvent(name);
     /* istanbul ignore if */
-    if ((false || true)&& isPlainObject(def)) {
+    if ((false || true) && isPlainObject(def)) {
       cur = def.handler;
       event.params = def.params;
     }
@@ -8018,6 +8028,18 @@ function checkProp (
 
 /*  */
 
+// The template compiler attempts to minimize the need for normalization by
+// statically analyzing the template at compile time.
+//
+// For plain HTML markup, normalization can be completely skipped because the
+// generated render function is guaranteed to return Array<VNode>. There are
+// two cases where extra normalization is needed:
+
+// 1. When the children contains components - because a functional component
+// may return an Array instead of a single root. In this case, just a simple
+// normalization is needed - if any child is an Array, we flatten the whole
+// thing with Array.prototype.concat. It is guaranteed to be only 1-level deep
+// because functional components already normalize their own children.
 function simpleNormalizeChildren (children) {
   for (var i = 0; i < children.length; i++) {
     if (Array.isArray(children[i])) {
@@ -9525,6 +9547,9 @@ function resolveInject (inject, vm) {
 
 /*  */
 
+/**
+ * Runtime helper for rendering v-for lists.
+ */
 function renderList (
   val,
   render
@@ -9556,6 +9581,9 @@ function renderList (
 
 /*  */
 
+/**
+ * Runtime helper for rendering <slot>
+ */
 function renderSlot (
   name,
   fallback,
@@ -9602,6 +9630,9 @@ function renderSlot (
 
 /*  */
 
+/**
+ * Runtime helper for resolving filters
+ */
 function resolveFilter (id) {
   return resolveAsset(this.$options, 'filters', id, true) || identity
 }
@@ -9640,6 +9671,9 @@ function checkKeyCodes (
 
 /*  */
 
+/**
+ * Runtime helper for merging v-bind="object" into a VNode's data.
+ */
 function bindObjectProps (
   data,
   tag,
@@ -11438,6 +11472,8 @@ function createPatchFunction (backend) {
       vnode.elm = vnode.ns
         ? nodeOps.createElementNS(vnode.ns, tag)
         : nodeOps.createElement(tag, vnode);
+        
+    debugger;
       {
         // in Weex, the default insertion order is parent-first.
         // List items can be optimized to use children-first insertion
@@ -11924,7 +11960,6 @@ function createPatchFunction (backend) {
   }
 
   return function patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
-    debugger
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) { invokeDestroyHook(oldVnode); }
       return
@@ -12292,6 +12327,7 @@ var platformModules = [
 
 /*  */
 
+// 暂时注释掉，看看需要的时候。
 var modules = platformModules.concat(baseModules);
 
 var corePatch = createPatchFunction({ nodeOps: nodeOps, modules: modules });
@@ -12348,6 +12384,7 @@ function query (el, document) {
   return placeholder
 }
 
+// install platform specific utils
 Vue.config.mustUseProp = mustUseProp;
 Vue.config.isReservedTag = isReservedTag$1;
 // Vue.config.isReservedAttr = isReservedAttr

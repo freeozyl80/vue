@@ -233,7 +233,8 @@ export default class Element {
         handler,
         params
       }
-      if (Native.document) {
+      // 这里有一个可能是隐患的东西， this.docId来判断
+      if (Native.document && this.docId) {
         Native.document.addEvent(this.docId, this.ref, type)
       }
     }
@@ -283,7 +284,7 @@ export default class Element {
   toJSON () {
     const result = {
       id: this.ref,
-      type: this.type == 'div' ? 'view': this.type,
+      type: this.type == 'div' ? 'view' : this.type,
       docId: this.docId || -10000,
       attributes: this.attributes ? this.attributes : {}
     }

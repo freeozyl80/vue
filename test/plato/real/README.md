@@ -1,0 +1,1 @@
+* element只有在被linkParent以后才会拥有docId的

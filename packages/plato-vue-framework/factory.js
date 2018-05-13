@@ -701,6 +701,9 @@ Dep.prototype.notify = function notify () {
   }
 };
 
+// the current target watcher being evaluated.
+// this is globally unique because there could be only one
+// watcher being evaluated at any time.
 Dep.target = null;
 var targetStack = [];
 
@@ -1100,6 +1103,11 @@ function dependArray (value) {
 
 /*  */
 
+/**
+ * Option overwriting strategies are functions that handle
+ * how to merge a parent option value and a child option
+ * value into the final value.
+ */
 var strats = config.optionMergeStrategies;
 
 /**
@@ -2032,7 +2040,7 @@ function updateListeners (
     old = oldOn[name];
     event = normalizeEvent(name);
     /* istanbul ignore if */
-    if ((false || true)&& isPlainObject(def)) {
+    if ((false || true) && isPlainObject(def)) {
       cur = def.handler;
       event.params = def.params;
     }
@@ -2164,6 +2172,18 @@ function checkProp (
 
 /*  */
 
+// The template compiler attempts to minimize the need for normalization by
+// statically analyzing the template at compile time.
+//
+// For plain HTML markup, normalization can be completely skipped because the
+// generated render function is guaranteed to return Array<VNode>. There are
+// two cases where extra normalization is needed:
+
+// 1. When the children contains components - because a functional component
+// may return an Array instead of a single root. In this case, just a simple
+// normalization is needed - if any child is an Array, we flatten the whole
+// thing with Array.prototype.concat. It is guaranteed to be only 1-level deep
+// because functional components already normalize their own children.
 function simpleNormalizeChildren (children) {
   for (var i = 0; i < children.length; i++) {
     if (Array.isArray(children[i])) {
@@ -3671,6 +3691,9 @@ function resolveInject (inject, vm) {
 
 /*  */
 
+/**
+ * Runtime helper for rendering v-for lists.
+ */
 function renderList (
   val,
   render
@@ -3702,6 +3725,9 @@ function renderList (
 
 /*  */
 
+/**
+ * Runtime helper for rendering <slot>
+ */
 function renderSlot (
   name,
   fallback,
@@ -3748,6 +3774,9 @@ function renderSlot (
 
 /*  */
 
+/**
+ * Runtime helper for resolving filters
+ */
 function resolveFilter (id) {
   return resolveAsset(this.$options, 'filters', id, true) || identity
 }
@@ -3786,6 +3815,9 @@ function checkKeyCodes (
 
 /*  */
 
+/**
+ * Runtime helper for merging v-bind="object" into a VNode's data.
+ */
 function bindObjectProps (
   data,
   tag,
@@ -5584,6 +5616,7 @@ function createPatchFunction (backend) {
       vnode.elm = vnode.ns
         ? nodeOps.createElementNS(vnode.ns, tag)
         : nodeOps.createElement(tag, vnode);
+        
       {
         // in Weex, the default insertion order is parent-first.
         // List items can be optimized to use children-first insertion
@@ -6070,7 +6103,6 @@ function createPatchFunction (backend) {
   }
 
   return function patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
-    debugger
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) { invokeDestroyHook(oldVnode); }
       return
@@ -6387,7 +6419,6 @@ function add$1 (
   passive,
   params
 ) {
-  debugger
   if (capture) {
     console.log('Plato do not support event in bubble phase.');
     return
@@ -6439,6 +6470,7 @@ var platformModules = [
 
 /*  */
 
+// 暂时注释掉，看看需要的时候。
 var modules = platformModules.concat(baseModules);
 
 var corePatch = createPatchFunction({ nodeOps: nodeOps, modules: modules });
@@ -6495,6 +6527,7 @@ function query (el, document) {
   return placeholder
 }
 
+// install platform specific utils
 Vue.config.mustUseProp = mustUseProp;
 Vue.config.isReservedTag = isReservedTag$1;
 // Vue.config.isReservedAttr = isReservedAttr

@@ -1,11 +1,12 @@
 <template>
-  <div v-bind:style="{ color: color, width: '400px', height: '400px', backgroundColor: '#383838'}" v-on:click="test(1)">
-    <sub></sub>
-    <text style="backgroundColor: #3d3d3d">{{string}}</text>
-    <div v-for="item in list">
-      <text>{{ item.txt }}</text>
+    <div v-bind:style="{ width: '800px', height: '400px', backgroundColor: color}">
+      <div v-on:click="test(1)"><text>click<text></div>
+      <sub></sub>
+      <text style="backgroundColor: #3d3d3d">{{string}}</text>
+      <div v-for="item in list">
+        <text>{{ item.txt }}</text>
+      </div>
     </div>
-  </div>
 </template>
 
 <script>

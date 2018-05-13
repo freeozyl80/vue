@@ -1,11 +1,11 @@
-var webpack = require('webpack');
-var path = require('path');
+var webpack = require('webpack')
+var path = require('path')
 
-var config  = {
+var config = {
 	 entry: path.resolve(__dirname, './bundler.js'),
 	 output: {
 	 	path: path.resolve(__dirname, 'dist'),
-        filename: 'bundler.js'
+    filename: 'bundler.js'
 	 },
 	 resolve: {
 	 	alias: {
@@ -15,4 +15,4 @@ var config  = {
 	 }
 }
 
-module.exports = config;
+module.exports = config

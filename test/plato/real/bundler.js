@@ -4,7 +4,7 @@ const VueFrameWork = require('VueFrameWork')
 const source =
 	`<template>
 	  <div v-bind:style="{ width: '800px', height: '400px', backgroundColor: color}">
-	    <div v-on:click="test(1)">click</div>
+	    <div v-on:click="test(1)"><text>click<text></div>
 	    <sub></sub>
 	    <text style="backgroundColor: #3d3d3d">{{string}}</text>
 	    <div v-for="item in list">
@@ -39,28 +39,28 @@ const styleRE = /<\s*style\s*\w*>([^(<\/)]*)<\/\s*style\s*>/g
 const scriptRE = /<\s*script.*>([^]*)<\/\s*script\s*>/
 const templateRE = /<\s*template\s*([^>]*)>([^]*)<\/\s*template\s*>/
 
-function parseStatic(fns) {
-	return '[' + fns.map(fn => `function () { ${fn} }`).join(',') + ']'
+function parseStatic (fns) {
+  return '[' + fns.map(fn => `function () { ${fn} }`).join(',') + ']'
 }
 
-function compileAndStringify(template) {
-	const {
-		render,
-		staticRenderFns
-	} = compile(template)
-	return {
-		renderComponent: `function () { ${render} }`,
-		staticRenderFnsComponent: parseStatic(staticRenderFns)
-	}
+function compileAndStringify (template) {
+  const {
+    render,
+    staticRenderFns
+  } = compile(template)
+  return {
+    renderComponent: `function () { ${render} }`,
+    staticRenderFnsComponent: parseStatic(staticRenderFns)
+  }
 }
 
-function compileVue(source, componentName) {
-	return new Promise((resolve, reject) => {
-		const {
-			renderComponent,
-			staticRenderFnsComponent
-		} = compileAndStringify(`<text style="fontSize: 24px">Hello, {{x}}</text>`)
-		const Components = `{
+function compileVue (source, componentName) {
+  return new Promise((resolve, reject) => {
+    const {
+      renderComponent,
+      staticRenderFnsComponent
+    } = compileAndStringify(`<text style="fontSize: 24px">Hello, {{x}}</text>`)
+    const Components = `{
 	        sub: {
 	          data: function () {
 	            return { x: 'This is child Componets' }
@@ -69,18 +69,18 @@ function compileVue(source, componentName) {
 	          staticRenderFns: ${staticRenderFnsComponent}
 	        }
 	      }`
-		source = source.replace('COMPONENTS', Components);
+    source = source.replace('COMPONENTS', Components)
 
-		const scriptMatch = scriptRE.exec(source)
-		const script = scriptMatch ? scriptMatch[1] : ''
-		const templateMatch = templateRE.exec(source)
-		const compileOptions = {}
+    const scriptMatch = scriptRE.exec(source)
+    const script = scriptMatch ? scriptMatch[1] : ''
+    const templateMatch = templateRE.exec(source)
+    const compileOptions = {}
 
-		const res = compile(templateMatch[2], compileOptions)
+    const res = compile(templateMatch[2], compileOptions)
 
-		const name = 'test_case_' + (Math.random() * 99999999).toFixed(0)
+    const name = 'test_case_' + (Math.random() * 99999999).toFixed(0)
 
-		const generateCode = styles => (`
+    const generateCode = styles => (`
 			const ${name} = Object.assign({
 			  _scopeId: "${name}",
 			  style: ${JSON.stringify(styles)},
@@ -92,20 +92,20 @@ function compileVue(source, componentName) {
 			  ${script};
 			  return module.exports;
 			})());
-		` + (componentName ?
-			`Vue.component('${componentName}', ${name});\n` :
-			`${name}.el = 'body';new Vue(${name});`))
-		resolve(generateCode({}))
-	})
+		` + (componentName
+      ? `Vue.component('${componentName}', ${name});\n`
+      : `${name}.el = 'body';new Vue(${name});`))
+    resolve(generateCode({}))
+  })
 }
 
 compileVue(source).then(code => {
-	const id = 'App'
-	const docId = 1;
-	VueFrameWork.loadNativeModules()
-	const instance = VueFrameWork.createInstance(id, docId)
+  const id = 'App'
+  const docId = 1
+  VueFrameWork.loadNativeModules()
+  const instance = VueFrameWork.createInstance(id, docId)
 
-	instance.registerComponent(id, code)
+  instance.registerComponent(id, code)
 }).catch((e) => {
-	global.nativeLog('2', e)
+  global.nativeLog('2', e)
 })

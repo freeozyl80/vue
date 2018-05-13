@@ -23,7 +23,7 @@ function compileAndStringify (template) {
 function compileVue (source, componentName) {
   return new Promise((resolve, reject) => {
   	const { renderComponent, staticRenderFnsComponent } = compileAndStringify(`<text>Hello {{x}}</text>`)
-	const Components = `{
+    const Components = `{
         sub: {
           data: function () {
             return { x: 'Sub' }
@@ -32,7 +32,7 @@ function compileVue (source, componentName) {
           staticRenderFns: ${staticRenderFnsComponent}
         }
       }`
-	source = source.replace('COMPONENTS', Components);
+    source = source.replace('COMPONENTS', Components)
 
     const scriptMatch = scriptRE.exec(source)
     const script = scriptMatch ? scriptMatch[1] : ''
@@ -45,7 +45,7 @@ function compileVue (source, componentName) {
     const res = compile(templateMatch[2], compileOptions)
 
     const name = 'test_case_' + (Math.random() * 99999999).toFixed(0)
-    
+
     const generateCode = styles => (`
       var ${name} = Object.assign({
         _scopeId: "${name}",
@@ -112,8 +112,8 @@ compileVue(source).then(code => {
   const id = String(Date.now() * Math.random())
   const docId = id
   VueFrameWork.loadNativeModules()
-  const instance = VueFrameWork.createInstance(id, docId);
-  instance.registerComponent(id, code);
+  const instance = VueFrameWork.createInstance(id, docId)
+  instance.registerComponent(id, code)
 }).catch((e) => {
   console.log(e)
 })

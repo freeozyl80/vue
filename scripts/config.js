@@ -16,7 +16,7 @@ const banner =
   ' * Released under the MIT License.\n' +
   ' */'
 
-const platoBanner =`// fix env
+const platoBanner = `// fix env
 try {
   if (!global) global = {};
   global.process = global.process || {};

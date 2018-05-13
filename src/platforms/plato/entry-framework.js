@@ -129,7 +129,7 @@ global.nativeTestModules = [{
   }]
 }]
 
-function init(cfg) {
+function init (cfg) {
   global.Native.document = cfg.document
   global.Native.CanvasModule = cfg.CanvasModule
   global.Native.Timer = cfg.Timer
@@ -140,7 +140,7 @@ function init(cfg) {
   initTimer()
 }
 
-function initNativeLog(argument) {
+function initNativeLog (argument) {
   if (typeof window !== 'object' && typeof global.nativeLog !== 'undefined') {
     global.console = {
       log: (message) => {
@@ -162,12 +162,12 @@ function initNativeLog(argument) {
   }
 }
 
-function initTimer(argument) {
+function initTimer (argument) {
   let _timerId = 0
   if (typeof setTimeout === 'undefined' || typeof clearTimeout === 'undefined') {
     global.setTimeout = (func, millsSec) => {
       const timerId = _timerId++
-        global.Native.Timer.setTimeout(timerId, func, millsSec)
+      global.Native.Timer.setTimeout(timerId, func, millsSec)
       return timerId
     }
     global.clearTimeout = (timerId) => {
@@ -178,7 +178,7 @@ function initTimer(argument) {
   if (typeof setInterval === 'undefined' || typeof clearInterval === 'undefined') {
     global.setInterval = (func, millsSec) => {
       const timerId = _timerId++
-        global.Native.Timer.setInterval(timerId, func, millsSec)
+      global.Native.Timer.setInterval(timerId, func, millsSec)
       return timerId
     }
     global.clearInterval = (timerId) => {
@@ -187,7 +187,7 @@ function initTimer(argument) {
   }
 }
 // 这里必须提前运行
-export function loadNativeModules() {
+export function loadNativeModules () {
   let nativeModules
   const res = {}
   if (process.env.TEST) {
@@ -214,7 +214,7 @@ export function loadNativeModules() {
             console.log(moduleDesc.moduleId, methodDesc.methodId, args)
             return
           }
-          global.nativeLog('2', moduleDesc.moduleId, methodDesc.methodId, args);
+          global.nativeLog('2', moduleDesc.moduleId, methodDesc.methodId, args)
           return fnBridge.execute(moduleDesc.moduleId, methodDesc.methodId, args)
         }
       }
@@ -227,7 +227,7 @@ export function loadNativeModules() {
 
 // 这里相当于registerApp
 
-export function createInstance(appKey, docId) {
+export function createInstance (appKey, docId) {
   const instances = {}
   const context = {}
   context[appKey] = {}
@@ -251,9 +251,9 @@ export function createInstance(appKey, docId) {
     document: context[appKey].document
   })
   const AppRegistry = {
-    registerComponent: function(appKey, appCode) {
+    registerComponent: function (appKey, appCode) {
       instances[appKey] = {
-        run: function() {
+        run: function () {
           // 这里直接执行就ok
           const globalKeys = []
           const globalValues = []
@@ -273,32 +273,39 @@ export function createInstance(appKey, docId) {
       }
       return appKey
     },
-    runApplication: function(appKey) {
+    runApplication: function (appKey) {
       const instance = instances[appKey]
       instance.run()
     }
   }
   if (!process.env.TEST) {
     fnBridge.registerCallableModule('AppRegistry', AppRegistry)
-    createEventCenter();
   }
-
+  // 事件中枢
+  createEventCenter(docId)
   Vue.mixin({
-    beforeCreate() {},
-    mounted() {
+    beforeCreate () {},
+    mounted () {
       global.Native.document.updateFinish(docId)
     }
   })
-  return AppRegistry;
+  return AppRegistry
 }
 
-function createEventCenter() {
+function createEventCenter (docId) {
   const EventCenter = {
-      fireEvent:function(docId, id, type, evt) {
-          global.nativeLog('2', '触发事件了')
-          global.nativeLog('2', JSON.stringify(getDoc(docId).nodeMap));
-          getDoc(docId).fireEvent(getDoc(docId).nodeMap[id], type, evt)
-      }
-  };
-  fnBridge.registerCallableModule('EventCenter', EventCenter);
+    fireEvent: function (docId, id, type, evt) {
+      console.log('2', '触发事件了')
+      console.log('2', docId)
+      getDoc(docId).fireEvent(getDoc(docId).nodeMap[id], type, evt)
+    }
+  }
+  if (!process.env.TEST) {
+    fnBridge.registerCallableModule('AppRegistry', AppRegistry)
+  } else {
+    setTimeout(function(){
+        console.log('事件测试')
+        EventCenter.fireEvent(docId, 5, 'click', {})
+    }, 2000)
+  }
 }
