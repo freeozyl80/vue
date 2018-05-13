@@ -2001,6 +2001,7 @@ var normalizeEvent = cached(function (name) {
 });
 
 function createFnInvoker (fns) {
+  debugger;
   function invoker () {
     var arguments$1 = arguments;
 

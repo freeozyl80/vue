@@ -357,9 +357,9 @@ const VueFrameWork = __webpack_require__(8)
 const source =
 	`<template>
 	  <div v-bind:style="{ width: '800px', height: '400px', backgroundColor: color}">
-	    <div v-on:click="test(1)"><text>click<text></div>
+	    <div v-on:click="test(1)" style="width:100px;height:100px;backgroundColor:#00FFFF"></div>
 	    <sub></sub>
-	    <text style="backgroundColor: #3d3d3d">{{string}}</text>
+	    <text>{{testData}}</text>
 	    <div v-for="item in list">
 	      <text>{{ item.txt }}</text>
 	    </div>
@@ -370,13 +370,13 @@ const source =
 	  module.exports = {
 	    methods: {
 	      test: function() {
-	        this.string = "Just Qzone Test"
+	        this.testData = 'lol'
 	      }
 	    },
 	    data() {
 	      return {
 	        color: '#DC143C',
-	        string: 'Congraulation',
+	        testData: 'wow',
 	        list: [{
 	          'txt': '这里是for循环第一位'
 	        }, {
@@ -456,8 +456,9 @@ compileVue(source).then(code => {
   const id = 'App'
   const docId = 1
   VueFrameWork.loadNativeModules()
+  nativeLog('2', '初始化完成')
   const instance = VueFrameWork.createInstance(id, docId)
-
+  nativeLog('2', '注册完成')
   instance.registerComponent(id, code)
 }).catch((e) => {
   global.nativeLog('2', e)
@@ -4931,7 +4932,7 @@ global._jsf = fnBridge = {
 
 var nextNodeRef = 1;
 function uniqueId () {
-  return (nextNodeRef++).toString()
+  return nextNodeRef++
 }
 var docMap = {};
 
@@ -5055,7 +5056,7 @@ function setBody (doc, el) {
   el.role = 'body';
   el.depth = 1;
   if (doc.nodeMap && doc.nodeMap[el.nodeId]) { delete doc.nodeMap[el.nodeId]; }
-  el.ref = '_root';
+  el.ref = 1;
   doc.nodeMap._root = el;
   doc.body = el;
 }
@@ -5273,7 +5274,7 @@ Element.prototype.clear = function clear () {
   this.pureChildren.length = 0;
 };
 // 这里slient代表什么呢?
-Element.prototype.setAttr = function setAttr (key, value, silent) {
+Element.prototype.setAttr = function setAttr (key, value, ifreload, silent) {
   if (this.attributes[key] === value && silent !== false) {
     return
   }
@@ -5283,6 +5284,7 @@ Element.prototype.setAttr = function setAttr (key, value, silent) {
     result[key] = value;
     Native.document.setAttr(this.docId, this.ref, result);
   }
+  
 };
 Element.prototype.setAttrs = function setAttrs (batchedAttrs, silent) {
   // 批量setAtribute先不做吧
@@ -5369,7 +5371,6 @@ Element.prototype.fireEvent = function fireEvent (type, event, isBubble, options
     event.currentTarget = this.parentNode;
     this.parentNode.fireEvent(type, event, isBubble); // no options
   }
-
   return result
 };
 
@@ -5458,7 +5459,7 @@ function updateElement (el, changes) {
 }
 
 var Document = function Document (id) {
-  id = id ? id.toString() : '';
+  id = id ? id : 0;
   this.id = id;
   this.nodeMap = {};
   addDoc(id, this);
@@ -5517,10 +5518,10 @@ Document.prototype.createElement = function createElement (tagName, props) {
 };
 // 这个看看能不能用到
 Document.prototype.fireEvent = function fireEvent (el, type, event, domChanges, options) {
-  global.nativeLog('2', '这里进入了');
-  global.nativeLog('2', el);
-  global.nativeLog('2', type);
-  global.nativeLog('2', event);
+  console.log('2', '这里进入了');
+  console.log('2', el);
+  console.log('2', type);
+  console.log('2', event);
   if (!el) {
     return
   }
@@ -5822,27 +5823,38 @@ function createInstance (appKey, docId) {
   };
   if (!process.env.TEST) {
     fnBridge.registerCallableModule('AppRegistry', AppRegistry);
-    createEventCenter();
   }
-
+  // 事件中枢
+  createEventCenter(docId);
   Vue.mixin({
     beforeCreate: function beforeCreate () {},
     mounted: function mounted () {
+      if(!this.$parent)
+      { global.Native.document.updateFinish(docId); }
+    },
+    updated: function updated () {
       global.Native.document.updateFinish(docId);
     }
   });
   return AppRegistry
 }
 
-function createEventCenter () {
+function createEventCenter (docId) {
   var EventCenter = {
     fireEvent: function (docId, id, type, evt) {
-      global.nativeLog('2', '触发事件了');
-      global.nativeLog('2', JSON.stringify(getDoc(docId).nodeMap));
+      console.log('2', '触发事件了');
+      console.log('2', docId);
       getDoc(docId).fireEvent(getDoc(docId).nodeMap[id], type, evt);
     }
   };
-  fnBridge.registerCallableModule('EventCenter', EventCenter);
+  if (!process.env.TEST) {
+    fnBridge.registerCallableModule('EventCenter', EventCenter);
+  } else {
+    setTimeout(function(){
+        console.log('事件测试');
+        EventCenter.fireEvent(docId, 5, 'click', {});
+    }, 2000);
+  }
 }
 
 exports.loadNativeModules = loadNativeModules;
@@ -6557,9 +6569,6 @@ Dep.prototype.notify = function notify () {
   }
 };
 
-// the current target watcher being evaluated.
-// this is globally unique because there could be only one
-// watcher being evaluated at any time.
 Dep.target = null;
 var targetStack = [];
 
@@ -6959,11 +6968,6 @@ function dependArray (value) {
 
 /*  */
 
-/**
- * Option overwriting strategies are functions that handle
- * how to merge a parent option value and a child option
- * value into the final value.
- */
 var strats = config.optionMergeStrategies;
 
 /**
@@ -8028,18 +8032,6 @@ function checkProp (
 
 /*  */
 
-// The template compiler attempts to minimize the need for normalization by
-// statically analyzing the template at compile time.
-//
-// For plain HTML markup, normalization can be completely skipped because the
-// generated render function is guaranteed to return Array<VNode>. There are
-// two cases where extra normalization is needed:
-
-// 1. When the children contains components - because a functional component
-// may return an Array instead of a single root. In this case, just a simple
-// normalization is needed - if any child is an Array, we flatten the whole
-// thing with Array.prototype.concat. It is guaranteed to be only 1-level deep
-// because functional components already normalize their own children.
 function simpleNormalizeChildren (children) {
   for (var i = 0; i < children.length; i++) {
     if (Array.isArray(children[i])) {
@@ -9547,9 +9539,6 @@ function resolveInject (inject, vm) {
 
 /*  */
 
-/**
- * Runtime helper for rendering v-for lists.
- */
 function renderList (
   val,
   render
@@ -9581,9 +9570,6 @@ function renderList (
 
 /*  */
 
-/**
- * Runtime helper for rendering <slot>
- */
 function renderSlot (
   name,
   fallback,
@@ -9630,9 +9616,6 @@ function renderSlot (
 
 /*  */
 
-/**
- * Runtime helper for resolving filters
- */
 function resolveFilter (id) {
   return resolveAsset(this.$options, 'filters', id, true) || identity
 }
@@ -9671,9 +9654,6 @@ function checkKeyCodes (
 
 /*  */
 
-/**
- * Runtime helper for merging v-bind="object" into a VNode's data.
- */
 function bindObjectProps (
   data,
   tag,
@@ -10143,7 +10123,6 @@ function renderRecyclableComponentTemplate (vnode) {
 
 /*  */
 
-// inline hooks to be invoked on component VNodes during patch
 var componentVNodeHooks = {
   init: function init (
     vnode,
@@ -11209,9 +11188,9 @@ function tagName (node) {
   return node.type
 }
 
-function setTextContent (nod, text) {
+function setTextContent (node, text) {
   if (node.parentNode) {
-    node.parentNode.setAttr('value', text);
+    node.parentNode.setAttr('value', text, true);
   }
 }
 
@@ -11472,8 +11451,6 @@ function createPatchFunction (backend) {
       vnode.elm = vnode.ns
         ? nodeOps.createElementNS(vnode.ns, tag)
         : nodeOps.createElement(tag, vnode);
-        
-    debugger;
       {
         // in Weex, the default insertion order is parent-first.
         // List items can be optimized to use children-first insertion
@@ -11960,6 +11937,7 @@ function createPatchFunction (backend) {
   }
 
   return function patch (oldVnode, vnode, hydrating, removeOnly, parentElm, refElm) {
+    debugger
     if (isUndef(vnode)) {
       if (isDef(oldVnode)) { invokeDestroyHook(oldVnode); }
       return
@@ -12327,7 +12305,6 @@ var platformModules = [
 
 /*  */
 
-// 暂时注释掉，看看需要的时候。
 var modules = platformModules.concat(baseModules);
 
 var corePatch = createPatchFunction({ nodeOps: nodeOps, modules: modules });
@@ -12384,7 +12361,6 @@ function query (el, document) {
   return placeholder
 }
 
-// install platform specific utils
 Vue.config.mustUseProp = mustUseProp;
 Vue.config.isReservedTag = isReservedTag$1;
 // Vue.config.isReservedAttr = isReservedAttr

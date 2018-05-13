@@ -1,6 +1,6 @@
 <template>
     <div v-bind:style="{ width: '800px', height: '400px', backgroundColor: color}">
-      <div v-on:click="test(1)"><text>click<text></div>
+      <div v-on:click="test"><text>click<text></div>
       <sub></sub>
       <text style="backgroundColor: #3d3d3d">{{string}}</text>
       <div v-for="item in list">
@@ -13,6 +13,8 @@
   module.exports = {
     methods: {
       test: function() {
+        debugger;
+        console.log(123);
         this.string = "Just Qzone Test"
       }
     },

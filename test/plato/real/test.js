@@ -130,18 +130,22 @@
           })
 
           global.Native.document.addElement(1, 3, {
-            'type': 'view',
+            'type': 'text',
             'docId': 1,
             'id': 4,
             'attributes': {
-              'style': {
-                'backgroundColor': '#DC143C',
-                'width': '30px',
-                'height': '30px'
-              }
-            },
-            'children': []
+              'value': 'Hello World'
+            }
           }, -1)
+          global.Native.document.setAttr(1, 4, {
+            'value': '测试成功1'
+          })
+
+          global.Native.document.updateFinish(1)
+
+          global.Native.document.setAttr(1, 4, {
+            'value': '测试成功2'
+          })
 
           global.Native.document.updateFinish(1)
         }

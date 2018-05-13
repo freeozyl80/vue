@@ -20,7 +20,7 @@ function updateElement (el, changes) {
 
 export default class Document {
   constructor (id) {
-    id = id ? id.toString() : ''
+    id = id ? id : 0
     this.id = id
     this.nodeMap = {}
     addDoc(id, this)

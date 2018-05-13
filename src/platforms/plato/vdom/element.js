@@ -179,7 +179,7 @@ export default class Element {
     this.pureChildren.length = 0
   }
   // 这里slient代表什么呢?
-  setAttr (key, value, silent) {
+  setAttr (key, value, ifreload, silent) {
     if (this.attributes[key] === value && silent !== false) {
       return
     }
@@ -188,6 +188,9 @@ export default class Element {
       const result = {}
       result[key] = value
       Native.document.setAttr(this.docId, this.ref, result)
+    }
+    if (ifreload) {
+      //Native.document.updateFinish(this.docId)
     }
   }
   setAttrs (batchedAttrs, silent) {
@@ -273,7 +276,6 @@ export default class Element {
       event.currentTarget = this.parentNode
       this.parentNode.fireEvent(type, event, isBubble) // no options
     }
-
     return result
   }
 

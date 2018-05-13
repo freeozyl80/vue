@@ -4,9 +4,9 @@ const VueFrameWork = require('VueFrameWork')
 const source =
 	`<template>
 	  <div v-bind:style="{ width: '800px', height: '400px', backgroundColor: color}">
-	    <div v-on:click="test(1)"><text>click<text></div>
+	    <div v-on:click="test(1)" style="width:100px;height:100px;backgroundColor:#00FFFF"></div>
 	    <sub></sub>
-	    <text style="backgroundColor: #3d3d3d">{{string}}</text>
+	    <text>{{testData}}</text>
 	    <div v-for="item in list">
 	      <text>{{ item.txt }}</text>
 	    </div>
@@ -17,13 +17,13 @@ const source =
 	  module.exports = {
 	    methods: {
 	      test: function() {
-	        this.string = "Just Qzone Test"
+	        this.testData = 'lol'
 	      }
 	    },
 	    data() {
 	      return {
 	        color: '#DC143C',
-	        string: 'Congraulation',
+	        testData: 'wow',
 	        list: [{
 	          'txt': '这里是for循环第一位'
 	        }, {
@@ -103,8 +103,9 @@ compileVue(source).then(code => {
   const id = 'App'
   const docId = 1
   VueFrameWork.loadNativeModules()
+  nativeLog('2', '初始化完成')
   const instance = VueFrameWork.createInstance(id, docId)
-
+  nativeLog('2', '注册完成')
   instance.registerComponent(id, code)
 }).catch((e) => {
   global.nativeLog('2', e)

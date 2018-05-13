@@ -66,7 +66,7 @@ global._jsf = fnBridge = {
 
 var nextNodeRef = 1;
 function uniqueId () {
-  return (nextNodeRef++).toString()
+  return nextNodeRef++
 }
 var docMap = {};
 
@@ -190,7 +190,7 @@ function setBody (doc, el) {
   el.role = 'body';
   el.depth = 1;
   if (doc.nodeMap && doc.nodeMap[el.nodeId]) { delete doc.nodeMap[el.nodeId]; }
-  el.ref = '_root';
+  el.ref = 1;
   doc.nodeMap._root = el;
   doc.body = el;
 }
@@ -408,7 +408,7 @@ Element.prototype.clear = function clear () {
   this.pureChildren.length = 0;
 };
 // 这里slient代表什么呢?
-Element.prototype.setAttr = function setAttr (key, value, silent) {
+Element.prototype.setAttr = function setAttr (key, value, ifreload, silent) {
   if (this.attributes[key] === value && silent !== false) {
     return
   }
@@ -418,6 +418,7 @@ Element.prototype.setAttr = function setAttr (key, value, silent) {
     result[key] = value;
     Native.document.setAttr(this.docId, this.ref, result);
   }
+  
 };
 Element.prototype.setAttrs = function setAttrs (batchedAttrs, silent) {
   // 批量setAtribute先不做吧
@@ -504,7 +505,6 @@ Element.prototype.fireEvent = function fireEvent (type, event, isBubble, options
     event.currentTarget = this.parentNode;
     this.parentNode.fireEvent(type, event, isBubble); // no options
   }
-
   return result
 };
 
@@ -593,7 +593,7 @@ function updateElement (el, changes) {
 }
 
 var Document = function Document (id) {
-  id = id ? id.toString() : '';
+  id = id ? id : 0;
   this.id = id;
   this.nodeMap = {};
   addDoc(id, this);
@@ -652,7 +652,6 @@ Document.prototype.createElement = function createElement (tagName, props) {
 };
 // 这个看看能不能用到
 Document.prototype.fireEvent = function fireEvent (el, type, event, domChanges, options) {
-  debugger;
   console.log('2', '这里进入了');
   console.log('2', el);
   console.log('2', type);
@@ -964,6 +963,10 @@ function createInstance (appKey, docId) {
   Vue.mixin({
     beforeCreate: function beforeCreate () {},
     mounted: function mounted () {
+      if(!this.$parent)
+      { global.Native.document.updateFinish(docId); }
+    },
+    updated: function updated () {
       global.Native.document.updateFinish(docId);
     }
   });
@@ -979,7 +982,7 @@ function createEventCenter (docId) {
     }
   };
   if (!process.env.TEST) {
-    fnBridge.registerCallableModule('AppRegistry', AppRegistry);
+    fnBridge.registerCallableModule('EventCenter', EventCenter);
   } else {
     setTimeout(function(){
         console.log('事件测试');

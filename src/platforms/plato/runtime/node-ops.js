@@ -73,9 +73,9 @@ export function tagName (node) {
   return node.type
 }
 
-export function setTextContent (nod, text) {
+export function setTextContent (node, text) {
   if (node.parentNode) {
-    node.parentNode.setAttr('value', text)
+    node.parentNode.setAttr('value', text, true)
   }
 }
 

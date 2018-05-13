@@ -1,6 +1,6 @@
 let nextNodeRef = 1
 export function uniqueId () {
-  return (nextNodeRef++).toString()
+  return nextNodeRef++
 }
 const docMap = {}
 
@@ -124,7 +124,7 @@ export function setBody (doc, el) {
   el.role = 'body'
   el.depth = 1
   if (doc.nodeMap && doc.nodeMap[el.nodeId]) { delete doc.nodeMap[el.nodeId] }
-  el.ref = '_root'
+  el.ref = 1
   doc.nodeMap._root = el
   doc.body = el
 }
