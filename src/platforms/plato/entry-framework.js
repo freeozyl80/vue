@@ -289,8 +289,7 @@ export function createInstance (appKey, docId, app) {
   Vue.mixin({
     beforeCreate () {},
     mounted () {
-      if(!this.$parent)
-      global.Native.document.updateFinish(docId)
+      if (!this.$parent) { global.Native.document.updateFinish(docId) }
     },
     updated () {
       global.Native.document.updateFinish(docId)
@@ -310,9 +309,9 @@ function createEventCenter (docId) {
   if (!process.env.TEST) {
     fnBridge.registerCallableModule('EventCenter', EventCenter)
   } else {
-    setTimeout(function(){
-        console.log('事件测试')
-        EventCenter.fireEvent(docId, 5, 'click', {})
+    setTimeout(function () {
+      console.log('事件测试')
+      EventCenter.fireEvent(docId, 5, 'click', {})
     }, 2000)
   }
 }

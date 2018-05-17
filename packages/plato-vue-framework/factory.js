@@ -6372,7 +6372,7 @@ function updateAttrs (oldVnode, vnode) {
 }
 
 function setAttr (el, key, value) {
-   baseSetAttr(el, key, value);
+  baseSetAttr(el, key, value);
 }
 
 function baseSetAttr (el, key, value) {

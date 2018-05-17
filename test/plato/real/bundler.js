@@ -56,10 +56,10 @@ function compileAndStringify (template) {
   }
 }
 function compileApp (app) {
-	return new Promise((resolve, reject) => {
-		const generateCode = `${app}.el = 'body';new Vue(${app});`
-		resolve(generateCode)
-	})
+  return new Promise((resolve, reject) => {
+    const generateCode = `${app}.el = 'body';new Vue(${app});`
+    resolve(generateCode)
+  })
 }
 
 function compileVue (source, componentName) {
@@ -106,7 +106,6 @@ function compileVue (source, componentName) {
     resolve(generateCode({}))
   })
 }
-
 
 // compileVue(source).then(code => {
 //   const id = 'App'

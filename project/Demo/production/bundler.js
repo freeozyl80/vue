@@ -470,25 +470,26 @@ const VueFrameWork = __webpack_require__(16)
 
 process.env.TEST = false
 
-function compileApp(app) {
-    app.el = 'body';
-    return new Promise((resolve, reject) => {
-        const code = `new Vue(app);`
-        resolve({
-            code,
-            app
-        })
+function compileApp (app) {
+  app.el = 'body'
+  return new Promise((resolve, reject) => {
+    const code = `new Vue(app);`
+    resolve({
+      code,
+      app
     })
+  })
 }
 
 compileApp(__WEBPACK_IMPORTED_MODULE_0__src_main_js__["a" /* default */]).then(obj => {
-    const id = 'App'
-    const docId = 1
-    VueFrameWork.loadNativeModules()
-    global.console.log('Demo入口文件处理')
-    const instance = VueFrameWork.createInstance(id, docId, obj.app)
-    instance.registerComponent(id, obj.code)
+  const id = 'App'
+  const docId = 1
+  VueFrameWork.loadNativeModules()
+  global.console.log('Demo入口文件处理')
+  const instance = VueFrameWork.createInstance(id, docId, obj.app)
+  instance.registerComponent(id, obj.code)
 })
+
 /* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(1), __webpack_require__(0)))
 
 /***/ }),
@@ -499,6 +500,7 @@ compileApp(__WEBPACK_IMPORTED_MODULE_0__src_main_js__["a" /* default */]).then(o
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__App_vue__ = __webpack_require__(6);
 
 /* harmony default export */ __webpack_exports__["a"] = (__WEBPACK_IMPORTED_MODULE_0__App_vue__["a" /* default */]);
+
 
 /***/ }),
 /* 6 */
@@ -5855,14 +5857,14 @@ Element.prototype.toJSON = function toJSON () {
   switch (this.type) {
     case 'div':
       result.type = 'view';
-      break;
+      break
     case 'p':
     case 'span':
       result.type = 'text';
-      break;
+      break
     case 'img':
       result.type = 'image';
-      break;
+      break
     default:
       result.type = this.type;
   }
@@ -5938,7 +5940,7 @@ function updateElement (el, changes) {
 }
 
 var Document = function Document (id) {
-  id = id ? id : 0;
+  id = id || 0;
   this.id = id;
   this.nodeMap = {};
   addDoc(id, this);
@@ -6307,8 +6309,7 @@ function createInstance (appKey, docId, app) {
   Vue.mixin({
     beforeCreate: function beforeCreate () {},
     mounted: function mounted () {
-      if(!this.$parent)
-      { global.Native.document.updateFinish(docId); }
+      if (!this.$parent) { global.Native.document.updateFinish(docId); }
     },
     updated: function updated () {
       global.Native.document.updateFinish(docId);
@@ -6328,9 +6329,9 @@ function createEventCenter (docId) {
   if (!process.env.TEST) {
     fnBridge.registerCallableModule('EventCenter', EventCenter);
   } else {
-    setTimeout(function(){
-        console.log('事件测试');
-        EventCenter.fireEvent(docId, 5, 'click', {});
+    setTimeout(function () {
+      console.log('事件测试');
+      EventCenter.fireEvent(docId, 5, 'click', {});
     }, 2000);
   }
 }
@@ -12718,7 +12719,7 @@ function updateAttrs (oldVnode, vnode) {
 }
 
 function setAttr (el, key, value) {
-   baseSetAttr(el, key, value);
+  baseSetAttr(el, key, value);
 }
 
 function baseSetAttr (el, key, value) {

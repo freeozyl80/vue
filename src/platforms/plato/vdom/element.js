@@ -194,7 +194,7 @@ export default class Element {
   //   // 批量setAtribute先不做吧
   //   return
   // }
-  removeAttribute(key) {
+  removeAttribute (key) {
     if (this.attributes[key]) {
       delete this.attributes[key]
     }
@@ -295,14 +295,14 @@ export default class Element {
     switch (this.type) {
       case 'div':
         result.type = 'view'
-        break;
+        break
       case 'p':
       case 'span':
         result.type = 'text'
-        break;
+        break
       case 'img':
         result.type = 'image'
-        break;
+        break
       default:
         result.type = this.type
     }

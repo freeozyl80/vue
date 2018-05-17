@@ -528,14 +528,14 @@ Element.prototype.toJSON = function toJSON () {
   switch (this.type) {
     case 'div':
       result.type = 'view';
-      break;
+      break
     case 'p':
     case 'span':
       result.type = 'text';
-      break;
+      break
     case 'img':
       result.type = 'image';
-      break;
+      break
     default:
       result.type = this.type;
   }
@@ -611,7 +611,7 @@ function updateElement (el, changes) {
 }
 
 var Document = function Document (id) {
-  id = id ? id : 0;
+  id = id || 0;
   this.id = id;
   this.nodeMap = {};
   addDoc(id, this);
@@ -980,8 +980,7 @@ function createInstance (appKey, docId, app) {
   Vue.mixin({
     beforeCreate: function beforeCreate () {},
     mounted: function mounted () {
-      if(!this.$parent)
-      { global.Native.document.updateFinish(docId); }
+      if (!this.$parent) { global.Native.document.updateFinish(docId); }
     },
     updated: function updated () {
       global.Native.document.updateFinish(docId);
@@ -1001,9 +1000,9 @@ function createEventCenter (docId) {
   if (!process.env.TEST) {
     fnBridge.registerCallableModule('EventCenter', EventCenter);
   } else {
-    setTimeout(function(){
-        console.log('事件测试');
-        EventCenter.fireEvent(docId, 5, 'click', {});
+    setTimeout(function () {
+      console.log('事件测试');
+      EventCenter.fireEvent(docId, 5, 'click', {});
     }, 2000);
   }
 }
