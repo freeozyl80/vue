@@ -195,7 +195,7 @@ export function loadNativeModules () {
   } else {
     nativeModules = global.loadNativeModules()
     if (!nativeModules) {
-      console.log('no 测试环境, no Native')
+      global.console.log('no 测试环境, no Native')
       return
     }
   }
@@ -210,11 +210,13 @@ export function loadNativeModules () {
         const methodDesc = moduleDesc.methods[methodIndex]
         module[methodDesc.method] = (...args) => {
           if (process.env.TEST) {
-            console.log('调用Native方法')
-            console.log(moduleDesc.moduleId, methodDesc.methodId, args)
+            global.console.log('调用Native方法')
+            global.console.log(moduleDesc.moduleId, methodDesc.methodId, args)
             return
           }
-          global.nativeLog('2', moduleDesc.moduleId, methodDesc.methodId, args)
+          global.console.log(moduleDesc.module)
+          global.console.log(methodDesc.method)
+          global.console.log(JSON.stringify(args))
           return fnBridge.execute(moduleDesc.moduleId, methodDesc.methodId, args)
         }
       }
@@ -227,7 +229,7 @@ export function loadNativeModules () {
 
 // 这里相当于registerApp
 
-export function createInstance (appKey, docId) {
+export function createInstance (appKey, docId, app) {
   const instances = {}
   const context = {}
   context[appKey] = {}
@@ -248,7 +250,8 @@ export function createInstance (appKey, docId) {
         }
       }
     },
-    document: context[appKey].document
+    document: context[appKey].document,
+    app: app
   })
   const AppRegistry = {
     registerComponent: function (appKey, appCode) {

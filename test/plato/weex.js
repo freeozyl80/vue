@@ -264,6 +264,7 @@ function createRenderTestCase (name) {
 
 compileAndExecute(`
       <div @click="foo">
+        <img src="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1526472642472&di=d311d41dbf9b0762f2960bd15690168c&imgtype=0&src=http%3A%2F%2Fhimg2.huanqiu.com%2Fattachment2010%2F2014%2F0418%2F20140418042335637.jpg"/>
         <text>Hello {{x}}</text>
       </div>
     `, `

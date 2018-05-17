@@ -5271,7 +5271,7 @@ function insertBefore (
   before
 ) {
   if (target.nodeType === 3) {
-    if (node.type === 'text') {
+    if (node.type === 'text' || node.type === 'span' || node.type === 'p') {
       node.setAttr('value', target.text);
       target.parentNode = node;
     } else {
@@ -5294,7 +5294,7 @@ function removeChild (node, child) {
 
 function appendChild (node, child) {
   if (child.nodeType === 3) {
-    if (node.type === 'text') {
+    if (node.type === 'text' || node.type === 'span' || node.type === 'p') {
       node.setAttr('value', child.text);
       child.parentNode = node;
     } else {
@@ -5322,12 +5322,15 @@ function tagName (node) {
 
 function setTextContent (node, text) {
   if (node.parentNode) {
-    node.parentNode.setAttr('value', text, true);
+    node.parentNode.setAttr('value', text);
   }
 }
 
 function setAttribute (node, key, val) {
   node.setAttr(key, val);
+}
+function removeAttribute () {
+  console.log('这个方法dom不支持，所以就扔这里了');
 }
 // 先注释掉吧，
 // export function setStyleScope (node: WeexElement, scopeId: string) {
@@ -5348,7 +5351,8 @@ var nodeOps = Object.freeze({
 	nextSibling: nextSibling,
 	tagName: tagName,
 	setTextContent: setTextContent,
-	setAttribute: setAttribute
+	setAttribute: setAttribute,
+	removeAttribute: removeAttribute
 });
 
 /*  */
@@ -6295,6 +6299,95 @@ var baseModules = [
   directives
 ]
 
+/*  */
+
+var isReservedAttr = makeMap('style,class');
+
+// attributes that should be using props for binding
+var acceptValue = makeMap('input,textarea,option,select,progress');
+
+
+var isEnumeratedAttr = makeMap('contenteditable,draggable,spellcheck');
+
+var isBooleanAttr = makeMap(
+  'allowfullscreen,async,autofocus,autoplay,checked,compact,controls,declare,' +
+  'default,defaultchecked,defaultmuted,defaultselected,defer,disabled,' +
+  'enabled,formnovalidate,hidden,indeterminate,inert,ismap,itemscope,loop,multiple,' +
+  'muted,nohref,noresize,noshade,novalidate,nowrap,open,pauseonexit,readonly,' +
+  'required,reversed,scoped,seamless,selected,sortable,translate,' +
+  'truespeed,typemustmatch,visible'
+);
+
+var xlinkNS = 'http://www.w3.org/1999/xlink';
+
+var isXlink = function (name) {
+  return name.charAt(5) === ':' && name.slice(0, 5) === 'xlink'
+};
+
+var getXlinkProp = function (name) {
+  return isXlink(name) ? name.slice(6, name.length) : ''
+};
+
+var isFalsyAttrValue = function (val) {
+  return val == null || val === false
+};
+
+/*  */
+
+/*  */
+
+function updateAttrs (oldVnode, vnode) {
+  var opts = vnode.componentOptions;
+  if (isDef(opts) && opts.Ctor.options.inheritAttrs === false) {
+    return
+  }
+  if (isUndef(oldVnode.data.attrs) && isUndef(vnode.data.attrs)) {
+    return
+  }
+  var key, cur, old;
+  var elm = vnode.elm;
+  var oldAttrs = oldVnode.data.attrs || {};
+  var attrs = vnode.data.attrs || {};
+  // clone observed objects, as the user probably wants to mutate it
+  if (isDef(attrs.__ob__)) {
+    attrs = vnode.data.attrs = extend({}, attrs);
+  }
+
+  for (key in attrs) {
+    cur = attrs[key];
+    old = oldAttrs[key];
+    if (old !== cur) {
+      setAttr(elm, key, cur);
+    }
+  }
+  for (key in oldAttrs) {
+    if (isUndef(attrs[key])) {
+      if (isXlink(key)) {
+        elm.removeAttributeNS(xlinkNS, getXlinkProp(key));
+      } else if (!isEnumeratedAttr(key)) {
+        elm.removeAttribute(key);
+      }
+    }
+  }
+}
+
+function setAttr (el, key, value) {
+   baseSetAttr(el, key, value);
+}
+
+function baseSetAttr (el, key, value) {
+  if (isFalsyAttrValue(value)) {
+    el.removeAttr(key);
+  } else {
+    el.setAttr(key, value);
+  }
+}
+
+var attr = {
+  create: updateAttrs,
+  update: updateAttrs
+}
+
 var normalize = cached(camelize);
 
 function createStyle (oldVnode, vnode) {
@@ -6431,6 +6524,7 @@ var events = {
 }
 
 var platformModules = [
+  attr,
   style,
   events
 ]
@@ -6475,7 +6569,7 @@ var isUnaryTag = makeMap(
   true
 );
 
-function mustUseProp (tag, type, name) {
+function mustUseProp$1 (tag, type, name) {
   return false
 }
 
@@ -6485,7 +6579,7 @@ function isUnknownElement$1 (tag) {
   return false
 }
 
-function query (el, document) {
+function query$1 (el, document) {
   // document is injected by weex factory wrapper
   var placeholder = document.createComment('root');
   placeholder.hasAttribute = placeholder.removeAttribute = function () {}; // hack for patch
@@ -6493,7 +6587,7 @@ function query (el, document) {
   return placeholder
 }
 
-Vue.config.mustUseProp = mustUseProp;
+Vue.config.mustUseProp = mustUseProp$1;
 Vue.config.isReservedTag = isReservedTag$1;
 // Vue.config.isReservedAttr = isReservedAttr
 Vue.config.isUnknownElement = isUnknownElement$1;
@@ -6508,7 +6602,7 @@ Vue.prototype.$mount = function (
 ) {
   return mountComponent(
     this,
-    el && query(el, this.$document),
+    el && query$1(el, this.$document),
     hydrating
   )
 };

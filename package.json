@@ -43,7 +43,8 @@
     "release": "bash scripts/release.sh",
     "release:weex": "bash scripts/release-weex.sh",
     "release:note": "node scripts/gen-release-note.js",
-    "run": "webpack --config ./test/plato/real/webpack.config.js"
+    "run": "webpack --config ./test/plato/real/webpack.config.js",
+    "plato:demo": "webpack --config ./project/demo/webpack.config.js"
   },
   "gitHooks": {
     "pre-commit": "lint-staged",
@@ -149,5 +150,9 @@
     "commitizen": {
       "path": "./node_modules/cz-conventional-changelog"
     }
+  },
+  "dependencies": {
+    "vue-loader": "^13.5.0",
+    "vue-template-compiler": "^2.5.7"
   }
 }

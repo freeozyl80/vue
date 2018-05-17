@@ -24,7 +24,7 @@ export function insertBefore (
   before
 ) {
   if (target.nodeType === 3) {
-    if (node.type === 'text') {
+    if (node.type === 'text' || node.type === 'span' || node.type === 'p') {
       node.setAttr('value', target.text)
       target.parentNode = node
     } else {
@@ -47,7 +47,7 @@ export function removeChild (node, child) {
 
 export function appendChild (node, child) {
   if (child.nodeType === 3) {
-    if (node.type === 'text') {
+    if (node.type === 'text' || node.type === 'span' || node.type === 'p') {
       node.setAttr('value', child.text)
       child.parentNode = node
     } else {
@@ -75,12 +75,15 @@ export function tagName (node) {
 
 export function setTextContent (node, text) {
   if (node.parentNode) {
-    node.parentNode.setAttr('value', text, true)
+    node.parentNode.setAttr('value', text)
   }
 }
 
 export function setAttribute (node, key, val) {
   node.setAttr(key, val)
+}
+export function removeAttribute () {
+  console.log('这个方法dom不支持，所以就扔这里了')
 }
 // 先注释掉吧，
 // export function setStyleScope (node: WeexElement, scopeId: string) {

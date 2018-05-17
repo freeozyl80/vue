@@ -77,10 +77,6 @@ export default class Document {
   }
   // 这个看看能不能用到
   fireEvent (el, type, event, domChanges, options) {
-    console.log('2', '这里进入了')
-    console.log('2', el)
-    console.log('2', type)
-    console.log('2', event)
     if (!el) {
       return
     }

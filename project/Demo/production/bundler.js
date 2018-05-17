@@ -60,7 +60,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 3);
+/******/ 	return __webpack_require__(__webpack_require__.s = 4);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -282,281 +282,6 @@ process.umask = function() { return 0; };
 
 /***/ }),
 /* 2 */
-/***/ (function(module, exports, __webpack_require__) {
-
-/* WEBPACK VAR INJECTION */(function(global) {var apply = Function.prototype.apply;
-
-// DOM APIs, for completeness
-
-exports.setTimeout = function() {
-  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
-};
-exports.setInterval = function() {
-  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
-};
-exports.clearTimeout =
-exports.clearInterval = function(timeout) {
-  if (timeout) {
-    timeout.close();
-  }
-};
-
-function Timeout(id, clearFn) {
-  this._id = id;
-  this._clearFn = clearFn;
-}
-Timeout.prototype.unref = Timeout.prototype.ref = function() {};
-Timeout.prototype.close = function() {
-  this._clearFn.call(window, this._id);
-};
-
-// Does not start the time, just sets up the members needed.
-exports.enroll = function(item, msecs) {
-  clearTimeout(item._idleTimeoutId);
-  item._idleTimeout = msecs;
-};
-
-exports.unenroll = function(item) {
-  clearTimeout(item._idleTimeoutId);
-  item._idleTimeout = -1;
-};
-
-exports._unrefActive = exports.active = function(item) {
-  clearTimeout(item._idleTimeoutId);
-
-  var msecs = item._idleTimeout;
-  if (msecs >= 0) {
-    item._idleTimeoutId = setTimeout(function onTimeout() {
-      if (item._onTimeout)
-        item._onTimeout();
-    }, msecs);
-  }
-};
-
-// setimmediate attaches itself to the global object
-__webpack_require__(6);
-// On some exotic environments, it's not clear which object `setimmeidate` was
-// able to install onto.  Search each possibility in the same order as the
-// `setimmediate` library.
-exports.setImmediate = (typeof self !== "undefined" && self.setImmediate) ||
-                       (typeof global !== "undefined" && global.setImmediate) ||
-                       (this && this.setImmediate);
-exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
-                         (typeof global !== "undefined" && global.clearImmediate) ||
-                         (this && this.clearImmediate);
-
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
-
-/***/ }),
-/* 3 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_prd_bundler_js__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_prd_bundler_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__src_prd_bundler_js__);
-
-
-const compile = __webpack_require__(5).compile
-const VueFrameWork = __webpack_require__(9)
-
-const source =
-	`<template>
-	  <div v-bind:style="{ width: '800px', height: '400px', backgroundColor: color}">
-	    <div v-on:click="test(1)" style="width:100px;height:100px;backgroundColor:#00FFFF"></div>
-	    <sub></sub>
-	    <text>{{testData}}</text>
-	    <div v-for="item in list">
-	      <text>{{ item.txt }}</text>
-	    </div>
-	  </div>
-	</template>
-
-	<script>
-	  module.exports = {
-	    methods: {
-	      test: function() {
-	        this.testData = 'lol'
-	      }
-	    },
-	    data() {
-	      return {
-	        color: '#DC143C',
-	        testData: 'wow',
-	        list: [{
-	          'txt': '这里是for循环第一位'
-	        }, {
-	          'txt': '这里是for循环第二位'
-	        }]
-	      }
-	    },
-	    components: COMPONENTS
-	  }
-	</script>
-	`
-const styleRE = /<\s*style\s*\w*>([^(<\/)]*)<\/\s*style\s*>/g
-const scriptRE = /<\s*script.*>([^]*)<\/\s*script\s*>/
-const templateRE = /<\s*template\s*([^>]*)>([^]*)<\/\s*template\s*>/
-
-function parseStatic (fns) {
-  return '[' + fns.map(fn => `function () { ${fn} }`).join(',') + ']'
-}
-
-function compileAndStringify (template) {
-  const {
-    render,
-    staticRenderFns
-  } = compile(template)
-  return {
-    renderComponent: `function () { ${render} }`,
-    staticRenderFnsComponent: parseStatic(staticRenderFns)
-  }
-}
-function compileApp (app) {
-	return new Promise((resolve, reject) => {
-		const generateCode = `${app}.el = 'body';new Vue(${app});`
-		resolve(generateCode)
-	})
-}
-
-function compileVue (source, componentName) {
-  return new Promise((resolve, reject) => {
-    const {
-      renderComponent,
-      staticRenderFnsComponent
-    } = compileAndStringify(`<text style="fontSize: 24px">Hello, {{x}}</text>`)
-    const Components = `{
-	        sub: {
-	          data: function () {
-	            return { x: 'This is child Componets' }
-	          },
-	          render: ${renderComponent},
-	          staticRenderFns: ${staticRenderFnsComponent}
-	        }
-	      }`
-    source = source.replace('COMPONENTS', Components)
-
-    const scriptMatch = scriptRE.exec(source)
-    const script = scriptMatch ? scriptMatch[1] : ''
-    const templateMatch = templateRE.exec(source)
-    const compileOptions = {}
-
-    const res = compile(templateMatch[2], compileOptions)
-
-    const name = 'test_case_' + (Math.random() * 99999999).toFixed(0)
-
-    const generateCode = styles => (`
-			const ${name} = Object.assign({
-			  _scopeId: "${name}",
-			  style: ${JSON.stringify(styles)},
-			  render: function () { ${res.render} },
-			  ${res['@render'] ? ('"@render": function () {' + res['@render'] + '},') : ''}
-			  staticRenderFns: ${parseStatic(res.staticRenderFns)},
-			}, (function(){
-			  const module = { exports: {} };
-			  ${script};
-			  return module.exports;
-			})());
-		` + (componentName
-      ? `Vue.component('${componentName}', ${name});\n`
-      : `${name}.el = 'body';new Vue(${name});`))
-    resolve(generateCode({}))
-  })
-}
-
-
-// compileVue(source).then(code => {
-//   const id = 'App'
-//   const docId = 1
-//   VueFrameWork.loadNativeModules()
-//   nativeLog('2', '初始化完成')
-//   const instance = VueFrameWork.createInstance(id, docId)
-//   nativeLog('2', '注册完成')
-//   instance.registerComponent(id, code)
-// }).catch((e) => {
-//   global.nativeLog('2', e)
-// })
-compileApp(__WEBPACK_IMPORTED_MODULE_0__src_prd_bundler_js__["App"]).then(code => {
-  const id = 'App'
-  const docId = 1
-  VueFrameWork.loadNativeModules()
-  nativeLog('2', '初始化完成')
-  const instance = VueFrameWork.createInstance(id, docId)
-  nativeLog('2', '注册完成')
-  instance.registerComponent(id, code)
-})
-
-/***/ }),
-/* 4 */
-/***/ (function(module, exports) {
-
-/******/ (function(modules) { // webpackBootstrap
-/******/ 	// The module cache
-/******/ 	var installedModules = {};
-/******/
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
-/******/
-/******/ 		// Check if module is in cache
-/******/ 		if(installedModules[moduleId]) {
-/******/ 			return installedModules[moduleId].exports;
-/******/ 		}
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = installedModules[moduleId] = {
-/******/ 			i: moduleId,
-/******/ 			l: false,
-/******/ 			exports: {}
-/******/ 		};
-/******/
-/******/ 		// Execute the module function
-/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
-/******/
-/******/ 		// Flag the module as loaded
-/******/ 		module.l = true;
-/******/
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
-/******/
-/******/
-/******/ 	// expose the modules object (__webpack_modules__)
-/******/ 	__webpack_require__.m = modules;
-/******/
-/******/ 	// expose the module cache
-/******/ 	__webpack_require__.c = installedModules;
-/******/
-/******/ 	// define getter function for harmony exports
-/******/ 	__webpack_require__.d = function(exports, name, getter) {
-/******/ 		if(!__webpack_require__.o(exports, name)) {
-/******/ 			Object.defineProperty(exports, name, {
-/******/ 				configurable: false,
-/******/ 				enumerable: true,
-/******/ 				get: getter
-/******/ 			});
-/******/ 		}
-/******/ 	};
-/******/
-/******/ 	// getDefaultExport function for compatibility with non-harmony modules
-/******/ 	__webpack_require__.n = function(module) {
-/******/ 		var getter = module && module.__esModule ?
-/******/ 			function getDefault() { return module['default']; } :
-/******/ 			function getModuleExports() { return module; };
-/******/ 		__webpack_require__.d(getter, 'a', getter);
-/******/ 		return getter;
-/******/ 	};
-/******/
-/******/ 	// Object.prototype.hasOwnProperty.call
-/******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
-/******/
-/******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "";
-/******/
-/******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 1);
-/******/ })
-/************************************************************************/
-/******/ ([
-/* 0 */
 /***/ (function(module, exports) {
 
 /* globals __VUE_SSR_CONTEXT__ */
@@ -665,27 +390,126 @@ module.exports = function normalizeComponent (
 
 
 /***/ }),
-/* 1 */
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(global) {var apply = Function.prototype.apply;
+
+// DOM APIs, for completeness
+
+exports.setTimeout = function() {
+  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
+};
+exports.setInterval = function() {
+  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
+};
+exports.clearTimeout =
+exports.clearInterval = function(timeout) {
+  if (timeout) {
+    timeout.close();
+  }
+};
+
+function Timeout(id, clearFn) {
+  this._id = id;
+  this._clearFn = clearFn;
+}
+Timeout.prototype.unref = Timeout.prototype.ref = function() {};
+Timeout.prototype.close = function() {
+  this._clearFn.call(window, this._id);
+};
+
+// Does not start the time, just sets up the members needed.
+exports.enroll = function(item, msecs) {
+  clearTimeout(item._idleTimeoutId);
+  item._idleTimeout = msecs;
+};
+
+exports.unenroll = function(item) {
+  clearTimeout(item._idleTimeoutId);
+  item._idleTimeout = -1;
+};
+
+exports._unrefActive = exports.active = function(item) {
+  clearTimeout(item._idleTimeoutId);
+
+  var msecs = item._idleTimeout;
+  if (msecs >= 0) {
+    item._idleTimeoutId = setTimeout(function onTimeout() {
+      if (item._onTimeout)
+        item._onTimeout();
+    }, msecs);
+  }
+};
+
+// setimmediate attaches itself to the global object
+__webpack_require__(13);
+// On some exotic environments, it's not clear which object `setimmeidate` was
+// able to install onto.  Search each possibility in the same order as the
+// `setimmediate` library.
+exports.setImmediate = (typeof self !== "undefined" && self.setImmediate) ||
+                       (typeof global !== "undefined" && global.setImmediate) ||
+                       (this && this.setImmediate);
+exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
+                         (typeof global !== "undefined" && global.clearImmediate) ||
+                         (this && this.clearImmediate);
+
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0)))
+
+/***/ }),
+/* 4 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__App_vue__ = __webpack_require__(2);
-/* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "App", function() { return __WEBPACK_IMPORTED_MODULE_0__App_vue__["a"]; });
+/* WEBPACK VAR INJECTION */(function(process, global) {/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__src_main_js__ = __webpack_require__(5);
 
 
+const compile = __webpack_require__(12).compile
+const VueFrameWork = __webpack_require__(16)
 
+process.env.TEST = false
+
+function compileApp(app) {
+    app.el = 'body';
+    return new Promise((resolve, reject) => {
+        const code = `new Vue(app);`
+        resolve({
+            code,
+            app
+        })
+    })
+}
+
+compileApp(__WEBPACK_IMPORTED_MODULE_0__src_main_js__["a" /* default */]).then(obj => {
+    const id = 'App'
+    const docId = 1
+    VueFrameWork.loadNativeModules()
+    global.console.log('Demo入口文件处理')
+    const instance = VueFrameWork.createInstance(id, docId, obj.app)
+    instance.registerComponent(id, obj.code)
+})
+/* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(1), __webpack_require__(0)))
 
 /***/ }),
-/* 2 */
+/* 5 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_App_vue__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__App_vue__ = __webpack_require__(6);
+
+/* harmony default export */ __webpack_exports__["a"] = (__WEBPACK_IMPORTED_MODULE_0__App_vue__["a" /* default */]);
+
+/***/ }),
+/* 6 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_App_vue__ = __webpack_require__(7);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_App_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_App_vue__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_7344521a_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_bustCache_App_vue__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_3023b201_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_bustCache_App_vue__ = __webpack_require__(11);
 var disposed = false
-var normalizeComponent = __webpack_require__(0)
+var normalizeComponent = __webpack_require__(2)
 /* script */
 
 /* template */
@@ -700,13 +524,13 @@ var __vue_scopeId__ = null
 var __vue_module_identifier__ = null
 var Component = normalizeComponent(
   __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_App_vue___default.a,
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_7344521a_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_bustCache_App_vue__["a" /* default */],
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_3023b201_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_bustCache_App_vue__["a" /* default */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
   __vue_module_identifier__
 )
-Component.options.__file = "test\\plato\\real\\src\\App.vue"
+Component.options.__file = "project\\demo\\src\\App.vue"
 if (Component.esModule && Object.keys(Component.esModule).some(function (key) {  return key !== "default" && key.substr(0, 2) !== "__"})) {  console.error("named exports are not supported in *.vue files.")}
 
 /* hot reload */
@@ -716,9 +540,9 @@ if (false) {(function () {
   if (!hotAPI.compatible) return
   module.hot.accept()
   if (!module.hot.data) {
-    hotAPI.createRecord("data-v-7344521a", Component.options)
+    hotAPI.createRecord("data-v-3023b201", Component.options)
   } else {
-    hotAPI.reload("data-v-7344521a", Component.options)
+    hotAPI.reload("data-v-3023b201", Component.options)
 ' + '  }
   module.hot.dispose(function (data) {
     disposed = true
@@ -729,7 +553,7 @@ if (false) {(function () {
 
 
 /***/ }),
-/* 3 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -739,21 +563,19 @@ Object.defineProperty(exports, "__esModule", {
 	value: true
 });
 
-var _Screen = __webpack_require__(4);
+var _Operation = __webpack_require__(8);
 
-var _Screen2 = _interopRequireDefault(_Screen);
+var _Operation2 = _interopRequireDefault(_Operation);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 exports.default = {
 	data: function data() {
-		return {
-			testData: '测试'
-		};
+		return {};
 	},
 
 	components: {
-		'screen': _Screen2.default
+		'operation': _Operation2.default
 	}
 }; //
 //
@@ -762,18 +584,21 @@ exports.default = {
 //
 //
 //
+//
+//
+//
 
 /***/ }),
-/* 4 */
+/* 8 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_Screen_vue__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_Screen_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_Screen_vue__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_50b3efec_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_bustCache_Screen_vue__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_Operation_vue__ = __webpack_require__(9);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_Operation_vue___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_Operation_vue__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_227e8447_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_bustCache_Operation_vue__ = __webpack_require__(10);
 var disposed = false
-var normalizeComponent = __webpack_require__(0)
+var normalizeComponent = __webpack_require__(2)
 /* script */
 
 /* template */
@@ -787,14 +612,14 @@ var __vue_scopeId__ = null
 /* moduleIdentifier (server only) */
 var __vue_module_identifier__ = null
 var Component = normalizeComponent(
-  __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_Screen_vue___default.a,
-  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_50b3efec_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_bustCache_Screen_vue__["a" /* default */],
+  __WEBPACK_IMPORTED_MODULE_0__babel_loader_node_modules_vue_loader_lib_selector_type_script_index_0_bustCache_Operation_vue___default.a,
+  __WEBPACK_IMPORTED_MODULE_1__node_modules_vue_loader_lib_template_compiler_index_id_data_v_227e8447_hasScoped_false_buble_transforms_node_modules_vue_loader_lib_selector_type_template_index_0_bustCache_Operation_vue__["a" /* default */],
   __vue_template_functional__,
   __vue_styles__,
   __vue_scopeId__,
   __vue_module_identifier__
 )
-Component.options.__file = "test\\plato\\real\\src\\Screen.vue"
+Component.options.__file = "project\\demo\\src\\Operation.vue"
 if (Component.esModule && Object.keys(Component.esModule).some(function (key) {  return key !== "default" && key.substr(0, 2) !== "__"})) {  console.error("named exports are not supported in *.vue files.")}
 
 /* hot reload */
@@ -804,9 +629,9 @@ if (false) {(function () {
   if (!hotAPI.compatible) return
   module.hot.accept()
   if (!module.hot.data) {
-    hotAPI.createRecord("data-v-50b3efec", Component.options)
+    hotAPI.createRecord("data-v-227e8447", Component.options)
   } else {
-    hotAPI.reload("data-v-50b3efec", Component.options)
+    hotAPI.reload("data-v-227e8447", Component.options)
 ' + '  }
   module.hot.dispose(function (data) {
     disposed = true
@@ -817,7 +642,7 @@ if (false) {(function () {
 
 
 /***/ }),
-/* 5 */
+/* 9 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -832,40 +657,54 @@ Object.defineProperty(exports, "__esModule", {
 //
 //
 //
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 
 
 exports.default = {
 	data: function data() {
 		return {
-			text: 'This is 子组件'
+			text: 0,
+			res: 0,
+			numberList: Array.from('987654321')
 		};
+	},
+
+	methods: {
+		click: function click(arg) {
+			if (this.text == '0') {
+				this.text = arg;
+			} else {
+				this.text += arg;
+			}
+		},
+		clear: function clear() {
+			this.text = '0';
+			this.res = 0;
+		},
+		calucate: function calucate() {
+			this.res += parseInt(this.text, 0);
+			this.text = this.res.toString();
+		},
+		add: function add() {
+			this.res += parseInt(this.text, 0);
+			this.text = '0';
+		}
 	}
 };
 
 /***/ }),
-/* 6 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-var render = function() {
-  var _vm = this
-  var _h = _vm.$createElement
-  var _c = _vm._self._c || _h
-  return _c("div", [_c("text", [_vm._v(_vm._s(_vm.text))])])
-}
-var staticRenderFns = []
-render._withStripped = true
-var esExports = { render: render, staticRenderFns: staticRenderFns }
-/* harmony default export */ __webpack_exports__["a"] = (esExports);
-if (false) {
-  module.hot.accept()
-  if (module.hot.data) {
-    require("vue-hot-reload-api")      .rerender("data-v-50b3efec", esExports)
-  }
-}
-
-/***/ }),
-/* 7 */
+/* 10 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -875,8 +714,142 @@ var render = function() {
   var _c = _vm._self._c || _h
   return _c(
     "div",
-    [_c("text", [_vm._v(_vm._s(_vm.testData))]), _vm._v(" "), _c("screen")],
-    1
+    { staticStyle: { display: "flex", flexDirection: "column" } },
+    [
+      _c(
+        "div",
+        {
+          staticStyle: {
+            backgroundColor: "#000",
+            width: "100vw",
+            height: "300px"
+          }
+        },
+        [
+          _c(
+            "span",
+            {
+              staticStyle: {
+                fontSize: "180px",
+                color: "#fff",
+                marginLeft: "80px",
+                marginTop: "20px"
+              }
+            },
+            [_vm._v(_vm._s(_vm.text))]
+          )
+        ]
+      ),
+      _vm._v(" "),
+      _c("div", { staticStyle: { display: "flex", flexDirection: "row" } }, [
+        _c(
+          "div",
+          {
+            staticStyle: {
+              width: "70vw",
+              height: "500px",
+              display: "flex",
+              flexDirection: "row",
+              flexWrap: "wrap"
+            }
+          },
+          _vm._l(_vm.numberList, function(item, index) {
+            return _c(
+              "span",
+              {
+                staticStyle: {
+                  width: "140px",
+                  marginRight: "20px",
+                  marginBottom: "20px",
+                  backgroundColor: "#808080",
+                  height: "140px",
+                  fontSize: "48px",
+                  color: "#fff",
+                  textAlign: "center"
+                },
+                on: {
+                  click: function($event) {
+                    _vm.click(item)
+                  }
+                }
+              },
+              [_vm._v(_vm._s(item))]
+            )
+          })
+        ),
+        _vm._v(" "),
+        _c(
+          "div",
+          {
+            staticStyle: {
+              width: "20vw",
+              height: "500px",
+              display: "flex",
+              flexDirection: "row",
+              flexWrap: "wrap"
+            }
+          },
+          [
+            _c(
+              "span",
+              {
+                staticStyle: {
+                  width: "140px",
+                  marginRight: "20px",
+                  marginBottom: "5px",
+                  backgroundColor: "#ffbf00",
+                  borderRadius: "140px",
+                  height: "140px",
+                  fontSize: "48px",
+                  color: "#fff",
+                  textAlign: "center"
+                },
+                on: { click: _vm.add }
+              },
+              [_vm._v("+")]
+            ),
+            _vm._v(" "),
+            _c(
+              "span",
+              {
+                staticStyle: {
+                  width: "140px",
+                  marginRight: "20px",
+                  marginBottom: "5px",
+                  backgroundColor: "#ffbf00",
+                  borderRadius: "140px",
+                  height: "140px",
+                  fontSize: "48px",
+                  color: "#fff",
+                  textAlign: "center"
+                },
+                on: { click: _vm.calucate }
+              },
+              [_vm._v("=")]
+            ),
+            _vm._v(" "),
+            _c(
+              "span",
+              {
+                staticStyle: {
+                  width: "140px",
+                  marginRight: "20px",
+                  marginBottom: "5px",
+                  backgroundColor: "#ffbf00",
+                  borderRadius: "140px",
+                  height: "140px",
+                  fontSize: "48px",
+                  color: "#fff",
+                  textAlign: "center"
+                },
+                on: { click: _vm.clear }
+              },
+              [_vm._v("C")]
+            )
+          ]
+        )
+      ])
+    ]
   )
 }
 var staticRenderFns = []
@@ -886,15 +859,76 @@ var esExports = { render: render, staticRenderFns: staticRenderFns }
 if (false) {
   module.hot.accept()
   if (module.hot.data) {
-    require("vue-hot-reload-api")      .rerender("data-v-7344521a", esExports)
+    require("vue-hot-reload-api")      .rerender("data-v-227e8447", esExports)
   }
 }
 
-/***/ })
-/******/ ]);
+/***/ }),
+/* 11 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+var render = function() {
+  var _vm = this
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h
+  return _c(
+    "div",
+    {
+      staticStyle: {
+        display: "flex",
+        flexDirection: "column",
+        marginTop: "88px"
+      }
+    },
+    [_vm._m(0, false, false), _vm._v(" "), _c("operation")],
+    1
+  )
+}
+var staticRenderFns = [
+  function() {
+    var _vm = this
+    var _h = _vm.$createElement
+    var _c = _vm._self._c || _h
+    return _c(
+      "div",
+      {
+        staticStyle: {
+          backgroundColor: "#fed002",
+          width: "100vw",
+          display: "flex",
+          flexDirection: "row",
+          justifyContent: "center"
+        }
+      },
+      [
+        _c("img", {
+          staticStyle: { height: "40px", width: "40px" },
+          attrs: {
+            src:
+              "https://qzonestyle.gtimg.cn/aoi/sola/20170601155558_l0Jl1I6myz.png"
+          }
+        }),
+        _vm._v(" "),
+        _c("span", { staticStyle: { fontSize: "24px", color: "#007fff" } }, [
+          _vm._v("这是一个可能会有bug的计算器Demo")
+        ])
+      ]
+    )
+  }
+]
+render._withStripped = true
+var esExports = { render: render, staticRenderFns: staticRenderFns }
+/* harmony default export */ __webpack_exports__["a"] = (esExports);
+if (false) {
+  module.hot.accept()
+  if (module.hot.data) {
+    require("vue-hot-reload-api")      .rerender("data-v-3023b201", esExports)
+  }
+}
 
 /***/ }),
-/* 5 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -904,7 +938,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 
 function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
 
-var he = _interopDefault(__webpack_require__(7));
+var he = _interopDefault(__webpack_require__(14));
 
 /*  */
 
@@ -4715,10 +4749,10 @@ function compile (
 
 exports.compile = compile;
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1), __webpack_require__(0), __webpack_require__(2).setImmediate))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1), __webpack_require__(0), __webpack_require__(3).setImmediate))
 
 /***/ }),
-/* 6 */
+/* 13 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global, process) {(function (global, undefined) {
@@ -4911,7 +4945,7 @@ exports.compile = compile;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0), __webpack_require__(1)))
 
 /***/ }),
-/* 7 */
+/* 14 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(module, global) {var __WEBPACK_AMD_DEFINE_RESULT__;/*! https://mths.be/he v1.1.1 by @mathias | MIT license */
@@ -5256,10 +5290,10 @@ exports.compile = compile;
 
 }(this));
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8)(module), __webpack_require__(0)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(15)(module), __webpack_require__(0)))
 
 /***/ }),
-/* 8 */
+/* 15 */
 /***/ (function(module, exports) {
 
 module.exports = function(module) {
@@ -5287,7 +5321,7 @@ module.exports = function(module) {
 
 
 /***/ }),
-/* 9 */
+/* 16 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -5706,15 +5740,20 @@ Element.prototype.setAttr = function setAttr (key, value, silent) {
     return
   }
   this.attributes[key] = value;
-  if (!silent && Native.document) {
+  if (!silent && Native.document && this.docId) {
     var result = {};
     result[key] = value;
     Native.document.setAttr(this.docId, this.ref, result);
   }
 };
-Element.prototype.setAttrs = function setAttrs (batchedAttrs, silent) {
-  // 批量setAtribute先不做吧
-  return
+// setAttrs (batchedAttrs, silent) {
+// // 批量setAtribute先不做吧
+// return
+// }
+Element.prototype.removeAttribute = function removeAttribute (key) {
+  if (this.attributes[key]) {
+    delete this.attributes[key];
+  }
 };
 Element.prototype.setStyle = function setStyle (key, value, silent) {
   if (this.style[key] === value && silent !== false) {
@@ -5809,10 +5848,24 @@ Element.prototype.toJSON = function toJSON () {
 
   var result = {
     id: this.ref,
-    type: this.type == 'div' ? 'view' : this.type,
     docId: this.docId || -10000,
     attributes: this.attributes ? this.attributes : {}
   };
+  // 切换一些支持的type
+  switch (this.type) {
+    case 'div':
+      result.type = 'view';
+      break;
+    case 'p':
+    case 'span':
+      result.type = 'text';
+      break;
+    case 'img':
+      result.type = 'image';
+      break;
+    default:
+      result.type = this.type;
+  }
   var styleObj = this.toStyle();
   if (!result.attributes.style) { result.attributes.style = {}; }
 
@@ -5944,10 +5997,6 @@ Document.prototype.createElement = function createElement (tagName, props) {
 };
 // 这个看看能不能用到
 Document.prototype.fireEvent = function fireEvent (el, type, event, domChanges, options) {
-  console.log('2', '这里进入了');
-  console.log('2', el);
-  console.log('2', type);
-  console.log('2', event);
   if (!el) {
     return
   }
@@ -5971,7 +6020,7 @@ Document.prototype.createComment = function createComment (text) {
   return new Comment(text)
 };
 
-var VueFactory = __webpack_require__(10);
+var VueFactory = __webpack_require__(17);
 global.Native = {};
 global.Api = {
   Document: Document,
@@ -6157,7 +6206,7 @@ function loadNativeModules () {
   } else {
     nativeModules = global.loadNativeModules();
     if (!nativeModules) {
-      console.log('no 测试环境, no Native');
+      global.console.log('no 测试环境, no Native');
       return
     }
   }
@@ -6175,11 +6224,13 @@ function loadNativeModules () {
           while ( len-- ) args[ len ] = arguments[ len ];
 
           if (process.env.TEST) {
-            console.log('调用Native方法');
-            console.log(moduleDesc.moduleId, methodDesc.methodId, args);
+            global.console.log('调用Native方法');
+            global.console.log(moduleDesc.moduleId, methodDesc.methodId, args);
             return
           }
-          global.nativeLog('2', moduleDesc.moduleId, methodDesc.methodId, args);
+          global.console.log(moduleDesc.module);
+          global.console.log(methodDesc.method);
+          global.console.log(JSON.stringify(args));
           return fnBridge.execute(moduleDesc.moduleId, methodDesc.methodId, args)
         };
       };
@@ -6196,7 +6247,7 @@ function loadNativeModules () {
 
 // 这里相当于registerApp
 
-function createInstance (appKey, docId) {
+function createInstance (appKey, docId, app) {
   var instances = {};
   var context = {};
   context[appKey] = {};
@@ -6217,7 +6268,8 @@ function createInstance (appKey, docId) {
         }
       }
     },
-    document: context[appKey].document
+    document: context[appKey].document,
+    app: app
   });
   var AppRegistry = {
     registerComponent: function (appKey, appCode) {
@@ -6289,7 +6341,7 @@ exports.createInstance = createInstance;
 /* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0), __webpack_require__(1)))
 
 /***/ }),
-/* 10 */
+/* 17 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* WEBPACK VAR INJECTION */(function(global, process, setImmediate) {// fix env
@@ -11565,7 +11617,7 @@ function insertBefore (
   before
 ) {
   if (target.nodeType === 3) {
-    if (node.type === 'text') {
+    if (node.type === 'text' || node.type === 'span' || node.type === 'p') {
       node.setAttr('value', target.text);
       target.parentNode = node;
     } else {
@@ -11588,7 +11640,7 @@ function removeChild (node, child) {
 
 function appendChild (node, child) {
   if (child.nodeType === 3) {
-    if (node.type === 'text') {
+    if (node.type === 'text' || node.type === 'span' || node.type === 'p') {
       node.setAttr('value', child.text);
       child.parentNode = node;
     } else {
@@ -11623,6 +11675,9 @@ function setTextContent (node, text) {
 function setAttribute (node, key, val) {
   node.setAttr(key, val);
 }
+function removeAttribute () {
+  console.log('这个方法dom不支持，所以就扔这里了');
+}
 // 先注释掉吧，
 // export function setStyleScope (node: WeexElement, scopeId: string) {
 //   node.setAttr('@styleScope', scopeId)
@@ -11642,7 +11697,8 @@ var nodeOps = Object.freeze({
 	nextSibling: nextSibling,
 	tagName: tagName,
 	setTextContent: setTextContent,
-	setAttribute: setAttribute
+	setAttribute: setAttribute,
+	removeAttribute: removeAttribute
 });
 
 /*  */
@@ -12589,6 +12645,95 @@ var baseModules = [
   directives
 ]
 
+/*  */
+
+var isReservedAttr = makeMap('style,class');
+
+// attributes that should be using props for binding
+var acceptValue = makeMap('input,textarea,option,select,progress');
+
+
+var isEnumeratedAttr = makeMap('contenteditable,draggable,spellcheck');
+
+var isBooleanAttr = makeMap(
+  'allowfullscreen,async,autofocus,autoplay,checked,compact,controls,declare,' +
+  'default,defaultchecked,defaultmuted,defaultselected,defer,disabled,' +
+  'enabled,formnovalidate,hidden,indeterminate,inert,ismap,itemscope,loop,multiple,' +
+  'muted,nohref,noresize,noshade,novalidate,nowrap,open,pauseonexit,readonly,' +
+  'required,reversed,scoped,seamless,selected,sortable,translate,' +
+  'truespeed,typemustmatch,visible'
+);
+
+var xlinkNS = 'http://www.w3.org/1999/xlink';
+
+var isXlink = function (name) {
+  return name.charAt(5) === ':' && name.slice(0, 5) === 'xlink'
+};
+
+var getXlinkProp = function (name) {
+  return isXlink(name) ? name.slice(6, name.length) : ''
+};
+
+var isFalsyAttrValue = function (val) {
+  return val == null || val === false
+};
+
+/*  */
+
+/*  */
+
+function updateAttrs (oldVnode, vnode) {
+  var opts = vnode.componentOptions;
+  if (isDef(opts) && opts.Ctor.options.inheritAttrs === false) {
+    return
+  }
+  if (isUndef(oldVnode.data.attrs) && isUndef(vnode.data.attrs)) {
+    return
+  }
+  var key, cur, old;
+  var elm = vnode.elm;
+  var oldAttrs = oldVnode.data.attrs || {};
+  var attrs = vnode.data.attrs || {};
+  // clone observed objects, as the user probably wants to mutate it
+  if (isDef(attrs.__ob__)) {
+    attrs = vnode.data.attrs = extend({}, attrs);
+  }
+
+  for (key in attrs) {
+    cur = attrs[key];
+    old = oldAttrs[key];
+    if (old !== cur) {
+      setAttr(elm, key, cur);
+    }
+  }
+  for (key in oldAttrs) {
+    if (isUndef(attrs[key])) {
+      if (isXlink(key)) {
+        elm.removeAttributeNS(xlinkNS, getXlinkProp(key));
+      } else if (!isEnumeratedAttr(key)) {
+        elm.removeAttribute(key);
+      }
+    }
+  }
+}
+
+function setAttr (el, key, value) {
+   baseSetAttr(el, key, value);
+}
+
+function baseSetAttr (el, key, value) {
+  if (isFalsyAttrValue(value)) {
+    el.removeAttr(key);
+  } else {
+    el.setAttr(key, value);
+  }
+}
+
+var attr = {
+  create: updateAttrs,
+  update: updateAttrs
+}
+
 var normalize = cached(camelize);
 
 function createStyle (oldVnode, vnode) {
@@ -12725,6 +12870,7 @@ var events = {
 }
 
 var platformModules = [
+  attr,
   style,
   events
 ]
@@ -12769,7 +12915,7 @@ var isUnaryTag = makeMap(
   true
 );
 
-function mustUseProp (tag, type, name) {
+function mustUseProp$1 (tag, type, name) {
   return false
 }
 
@@ -12779,7 +12925,7 @@ function isUnknownElement$1 (tag) {
   return false
 }
 
-function query (el, document) {
+function query$1 (el, document) {
   // document is injected by weex factory wrapper
   var placeholder = document.createComment('root');
   placeholder.hasAttribute = placeholder.removeAttribute = function () {}; // hack for patch
@@ -12787,7 +12933,7 @@ function query (el, document) {
   return placeholder
 }
 
-Vue.config.mustUseProp = mustUseProp;
+Vue.config.mustUseProp = mustUseProp$1;
 Vue.config.isReservedTag = isReservedTag$1;
 // Vue.config.isReservedAttr = isReservedAttr
 Vue.config.isUnknownElement = isUnknownElement$1;
@@ -12802,7 +12948,7 @@ Vue.prototype.$mount = function (
 ) {
   return mountComponent(
     this,
-    el && query(el, this.$document),
+    el && query$1(el, this.$document),
     hydrating
   )
 };
@@ -12811,7 +12957,7 @@ exports.Vue = Vue;
 
 }
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0), __webpack_require__(1), __webpack_require__(2).setImmediate))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(0), __webpack_require__(1), __webpack_require__(3).setImmediate))
 
 /***/ })
 /******/ ]);

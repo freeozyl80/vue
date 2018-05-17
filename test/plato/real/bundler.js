@@ -1,3 +1,5 @@
+import { App } from './src/prd/bundler.js'
+
 const compile = require('compile').compile
 const VueFrameWork = require('VueFrameWork')
 
@@ -53,6 +55,12 @@ function compileAndStringify (template) {
     staticRenderFnsComponent: parseStatic(staticRenderFns)
   }
 }
+function compileApp (app) {
+	return new Promise((resolve, reject) => {
+		const generateCode = `${app}.el = 'body';new Vue(${app});`
+		resolve(generateCode)
+	})
+}
 
 function compileVue (source, componentName) {
   return new Promise((resolve, reject) => {
@@ -99,7 +107,19 @@ function compileVue (source, componentName) {
   })
 }
 
-compileVue(source).then(code => {
+
+// compileVue(source).then(code => {
+//   const id = 'App'
+//   const docId = 1
+//   VueFrameWork.loadNativeModules()
+//   nativeLog('2', '初始化完成')
+//   const instance = VueFrameWork.createInstance(id, docId)
+//   nativeLog('2', '注册完成')
+//   instance.registerComponent(id, code)
+// }).catch((e) => {
+//   global.nativeLog('2', e)
+// })
+compileApp(App).then(code => {
   const id = 'App'
   const docId = 1
   VueFrameWork.loadNativeModules()
@@ -107,6 +127,4 @@ compileVue(source).then(code => {
   const instance = VueFrameWork.createInstance(id, docId)
   nativeLog('2', '注册完成')
   instance.registerComponent(id, code)
-}).catch((e) => {
-  global.nativeLog('2', e)
 })

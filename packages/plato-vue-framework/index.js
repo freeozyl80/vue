@@ -408,21 +408,25 @@ Element.prototype.clear = function clear () {
   this.pureChildren.length = 0;
 };
 // 这里slient代表什么呢?
-Element.prototype.setAttr = function setAttr (key, value, ifreload, silent) {
+Element.prototype.setAttr = function setAttr (key, value, silent) {
   if (this.attributes[key] === value && silent !== false) {
     return
   }
   this.attributes[key] = value;
-  if (!silent && Native.document) {
+  if (!silent && Native.document && this.docId) {
     var result = {};
     result[key] = value;
     Native.document.setAttr(this.docId, this.ref, result);
   }
-  
 };
-Element.prototype.setAttrs = function setAttrs (batchedAttrs, silent) {
-  // 批量setAtribute先不做吧
-  return
+// setAttrs (batchedAttrs, silent) {
+// // 批量setAtribute先不做吧
+// return
+// }
+Element.prototype.removeAttribute = function removeAttribute (key) {
+  if (this.attributes[key]) {
+    delete this.attributes[key];
+  }
 };
 Element.prototype.setStyle = function setStyle (key, value, silent) {
   if (this.style[key] === value && silent !== false) {
@@ -517,10 +521,24 @@ Element.prototype.toJSON = function toJSON () {
 
   var result = {
     id: this.ref,
-    type: this.type == 'div' ? 'view' : this.type,
     docId: this.docId || -10000,
     attributes: this.attributes ? this.attributes : {}
   };
+  // 切换一些支持的type
+  switch (this.type) {
+    case 'div':
+      result.type = 'view';
+      break;
+    case 'p':
+    case 'span':
+      result.type = 'text';
+      break;
+    case 'img':
+      result.type = 'image';
+      break;
+    default:
+      result.type = this.type;
+  }
   var styleObj = this.toStyle();
   if (!result.attributes.style) { result.attributes.style = {}; }
 
@@ -652,10 +670,6 @@ Document.prototype.createElement = function createElement (tagName, props) {
 };
 // 这个看看能不能用到
 Document.prototype.fireEvent = function fireEvent (el, type, event, domChanges, options) {
-  console.log('2', '这里进入了');
-  console.log('2', el);
-  console.log('2', type);
-  console.log('2', event);
   if (!el) {
     return
   }
@@ -865,7 +879,7 @@ function loadNativeModules () {
   } else {
     nativeModules = global.loadNativeModules();
     if (!nativeModules) {
-      console.log('no 测试环境, no Native');
+      global.console.log('no 测试环境, no Native');
       return
     }
   }
@@ -883,11 +897,13 @@ function loadNativeModules () {
           while ( len-- ) args[ len ] = arguments[ len ];
 
           if (process.env.TEST) {
-            console.log('调用Native方法');
-            console.log(moduleDesc.moduleId, methodDesc.methodId, args);
+            global.console.log('调用Native方法');
+            global.console.log(moduleDesc.moduleId, methodDesc.methodId, args);
             return
           }
-          global.nativeLog('2', moduleDesc.moduleId, methodDesc.methodId, args);
+          global.console.log(moduleDesc.module);
+          global.console.log(methodDesc.method);
+          global.console.log(JSON.stringify(args));
           return fnBridge.execute(moduleDesc.moduleId, methodDesc.methodId, args)
         };
       };
@@ -904,7 +920,7 @@ function loadNativeModules () {
 
 // 这里相当于registerApp
 
-function createInstance (appKey, docId) {
+function createInstance (appKey, docId, app) {
   var instances = {};
   var context = {};
   context[appKey] = {};
@@ -925,7 +941,8 @@ function createInstance (appKey, docId) {
         }
       }
     },
-    document: context[appKey].document
+    document: context[appKey].document,
+    app: app
   });
   var AppRegistry = {
     registerComponent: function (appKey, appCode) {

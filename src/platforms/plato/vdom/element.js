@@ -179,23 +179,25 @@ export default class Element {
     this.pureChildren.length = 0
   }
   // 这里slient代表什么呢?
-  setAttr (key, value, ifreload, silent) {
+  setAttr (key, value, silent) {
     if (this.attributes[key] === value && silent !== false) {
       return
     }
     this.attributes[key] = value
-    if (!silent && Native.document) {
+    if (!silent && Native.document && this.docId) {
       const result = {}
       result[key] = value
       Native.document.setAttr(this.docId, this.ref, result)
     }
-    if (ifreload) {
-      //Native.document.updateFinish(this.docId)
-    }
   }
-  setAttrs (batchedAttrs, silent) {
-    // 批量setAtribute先不做吧
-    return
+  // setAttrs (batchedAttrs, silent) {
+  //   // 批量setAtribute先不做吧
+  //   return
+  // }
+  removeAttribute(key) {
+    if (this.attributes[key]) {
+      delete this.attributes[key]
+    }
   }
   setStyle (key, value, silent) {
     if (this.style[key] === value && silent !== false) {
@@ -286,9 +288,23 @@ export default class Element {
   toJSON () {
     const result = {
       id: this.ref,
-      type: this.type == 'div' ? 'view' : this.type,
       docId: this.docId || -10000,
       attributes: this.attributes ? this.attributes : {}
+    }
+    // 切换一些支持的type
+    switch (this.type) {
+      case 'div':
+        result.type = 'view'
+        break;
+      case 'p':
+      case 'span':
+        result.type = 'text'
+        break;
+      case 'img':
+        result.type = 'image'
+        break;
+      default:
+        result.type = this.type
     }
     const styleObj = this.toStyle()
     if (!result.attributes.style) result.attributes.style = {}
