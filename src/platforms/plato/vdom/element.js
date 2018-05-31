@@ -284,27 +284,25 @@ export default class Element {
   toStyle () {
     return Object.assign({}, this.classStyle, this.style)
   }
-  regKeyframe(keyframe) {
-    if (keyframe == null)
-      return;
-    let name = Object.keys(keyframe)[0]
-    if (AnimationArr.includes(name))
-      return;
+  regKeyframe (keyframe) {
+    if (keyframe == null) { return }
+    const name = Object.keys(keyframe)[0]
+    if (AnimationArr.includes(name)) { return }
     AnimationArr.push(name)
     Native.document.addKeyframeMap(this.docId, keyframe)
   }
 
-  addKeyframe(frames) {
+  addKeyframe (frames) {
     for (let i = 0; i < frames.length; i++) {
-        Native.document.addKeyframe(this.docId, frames[i])
+      Native.document.addKeyframe(this.docId, frames[i])
     }
   }
-  playKeyframe(keyframe, animation) {
-      let key = Object.keys(animation)[0];
-      let value = animation[key];
-      this.regKeyframe(keyframe)
-      this.setStyle(key, value)
-      Native.document.updateFinish(this.docId)  
+  playKeyframe (keyframe, animation) {
+    const key = Object.keys(animation)[0]
+    const value = animation[key]
+    this.regKeyframe(keyframe)
+    this.setStyle(key, value)
+    Native.document.updateFinish(this.docId)
   }
 
   toJSON () {

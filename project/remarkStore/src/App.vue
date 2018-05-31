@@ -4,7 +4,7 @@
 			<div v-bind:style="style.header">
 				<span v-bind:style="style.headerIcon"></span>
 				<span v-bind:style="style.headerTitle">豪华黄钻免费试用所有气泡皮肤</span>
-		  		<span v-bind:style="style.headerBtn" v-on:click="openSuperVip">{{userInfo.deluxe ? '续费' : '开通'}}豪华黄钻</span>
+		  		<span v-bind:style="style.headerBtn" v-on:click="openSuperVip">{{data.userInfo.deluxe ? '续费' : '开通'}}豪华黄钻</span>
 			</div>
 			<div v-bind:style="style.headerBtm"></div>
 		</div>
@@ -26,7 +26,7 @@
 <script>
 
 import ajax from '../../lib/ajax.js'
-
+import Data from './data.js'
 let style = {
 	container: {
 		position: 'fixed',
@@ -105,7 +105,28 @@ let style = {
 }
 export default {
 	created() {
-		ajax.request('')
+		let me = this;
+
+		let Promise1 = ajax.request({
+			"url": "http://activity.qzone.qq.com/fcg-bin/v2/fcg_get_user_info",
+			"type": "GET"
+		})
+
+		let Promise2 = ajax.request({
+			"url": "http://activity.qzone.qq.com/fcg-bin/v2/fcg_get_user_info",
+			"type": "GET"
+		})
+
+		let Promise3 = ajax.request({
+			"url": "http://activity.qzone.qq.com/fcg-bin/v2/fcg_get_user_info",
+			"type": "GET"
+		})
+		console.log(123);
+		Promise.all(Promise1, Promise2, Promise3).then(values => {
+			console.log(values);
+		}).catch(reason => {
+			console.log(reason);
+		})
 	},
 	data() {
 		return {

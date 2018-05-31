@@ -516,11 +516,9 @@ Element.prototype.toStyle = function toStyle () {
   return Object.assign({}, this.classStyle, this.style)
 };
 Element.prototype.regKeyframe = function regKeyframe (keyframe) {
-  if (keyframe == null)
-    { return; }
+  if (keyframe == null) { return }
   var name = Object.keys(keyframe)[0];
-  if (AnimationArr.includes(name))
-    { return; }
+  if (AnimationArr.includes(name)) { return }
   AnimationArr.push(name);
   Native.document.addKeyframeMap(this.docId, keyframe);
 };
@@ -529,15 +527,15 @@ Element.prototype.addKeyframe = function addKeyframe (frames) {
     var this$1 = this;
 
   for (var i = 0; i < frames.length; i++) {
-      Native.document.addKeyframe(this$1.docId, frames[i]);
+    Native.document.addKeyframe(this$1.docId, frames[i]);
   }
 };
 Element.prototype.playKeyframe = function playKeyframe (keyframe, animation) {
-    var key = Object.keys(animation)[0];
-    var value = animation[key];
-    this.regKeyframe(keyframe);
-    this.setStyle(key, value);
-    Native.document.updateFinish(this.docId);  
+  var key = Object.keys(animation)[0];
+  var value = animation[key];
+  this.regKeyframe(keyframe);
+  this.setStyle(key, value);
+  Native.document.updateFinish(this.docId);
 };
 
 Element.prototype.toJSON = function toJSON () {
