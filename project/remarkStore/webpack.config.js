@@ -52,7 +52,6 @@ if (process.env.PLATFORM == 'web') {
 }
 if (process.env.PLATFORM == 'plato') {
     Object.assign(config, {
-        mode: 'development',
         resolve: {
             alias: {
                 compile: path.resolve(__dirname, '../../packages/plato-template-compiler/build.js'),

@@ -3,7 +3,7 @@ import App from './src/main.js'
 const compile = require('compile').compile
 const VueFrameWork = require('VueFrameWork')
 
-process.env.TEST = false
+process.env.TEST = true
 
 function compileApp (app) {
   app.el = 'body'

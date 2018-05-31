@@ -3748,8 +3748,71 @@ var style = {
   genData: genData$1
 }
 
+function transformNode$1 (el, options) {
+  var warn = options.warn || baseWarn;
+  var staticClass = getAndRemoveAttr(el, 'class');
+  var ref = parseStaticClass(staticClass, options);
+  var dynamic = ref.dynamic;
+  var classResult = ref.classResult;
+  if (process.env.NODE_ENV !== 'production' && dynamic && staticClass) {
+    warn(
+      "class=\"" + staticClass + "\": " +
+      'Interpolation inside attributes has been deprecated. ' +
+      'Use v-bind or the colon shorthand instead.'
+    );
+  }
+  if (!dynamic && classResult) {
+    el.staticClass = classResult;
+  }
+  var classBinding = getBindingAttr(el, 'class', false /* getStatic */);
+  if (classBinding) {
+    el.classBinding = classBinding;
+  } else if (dynamic) {
+    el.classBinding = classResult;
+  }
+}
+
+function genData$2 (el) {
+  var data = '';
+  if (el.staticClass) {
+    data += "staticClass:" + (el.staticClass) + ",";
+  }
+  if (el.classBinding) {
+    data += "class:" + (el.classBinding) + ",";
+  }
+  return data
+}
+
+function parseStaticClass (staticClass, options) {
+  // "a b c" -> ["a", "b", "c"] => staticClass: ["a", "b", "c"]
+  // "a {{x}} c" -> ["a", x, "c"] => classBinding: '["a", x, "c"]'
+  var dynamic = false;
+  var classResult = '';
+  if (staticClass) {
+    var classList = staticClass.trim().split(' ').map(function (name) {
+      var result = parseText(name, options.delimiters);
+      if (result) {
+        dynamic = true;
+        return result.expression
+      }
+      return JSON.stringify(name)
+    });
+    if (classList.length) {
+      classResult = '[' + classList.join(',') + ']';
+    }
+  }
+  return { dynamic: dynamic, classResult: classResult }
+}
+
+var klass = {
+  staticKeys: ['staticClass'],
+  transformNode: transformNode$1,
+  genData: genData$2
+}
+
 var modules = [
-  style
+  style,
+  klass
 ]
 
 var directives = {
