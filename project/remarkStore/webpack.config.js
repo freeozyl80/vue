@@ -3,9 +3,10 @@ var webpack = require('webpack')
 var VueLoaderPlugin = require('vue-loader/lib/plugin')
 var HtmlWebpackPlugin = require('html-webpack-plugin')
 var ROOT_DIR = path.resolve(__dirname, '../../')
+var entry = process.env.PLATFORM == 'web' ? './entry.js' : './entry-plato.js'
 var config = {
   entry: {
-    index: path.resolve(__dirname, './entry.js')
+    index: path.resolve(__dirname, entry)
   },
   output: {
     path: path.resolve(__dirname, 'production'),
@@ -52,6 +53,7 @@ if (process.env.PLATFORM == 'web') {
 }
 if (process.env.PLATFORM == 'plato') {
   Object.assign(config, {
+    mode: 'development',
     resolve: {
       alias: {
         compile: path.resolve(__dirname, '../../packages/plato-template-compiler/build.js'),

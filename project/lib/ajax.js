@@ -38,7 +38,7 @@ const ajaxNative = {
 				}
 
 			} else {
-				resolve('fakeData')
+				reject('fakeData')
 			}
 		})
 	}

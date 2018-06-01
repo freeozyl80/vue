@@ -9,17 +9,10 @@
 			<div v-bind:style="style.headerBtm"></div>
 		</div>
 
+		<preview :previewObj="data.previewObj" :defaultId="data.defaultId" @switchEvent="use" @vipEvent="openVip" @superVipEvent="openSuperVip"></preview>
+
 		<div v-bind:style="style.main">
-			<div class="ocupy"></div>
-			<div v-bind:style="style.itemList">
-				<span v-bind:style="style.itemListTitle">倾心</span>
-				<div v-bind:style="style.itemArea">
-					<div v-bind:style="style.item">
-						<div v-bind:style="style.itemPic"></div>
-						<span v-bind:style="style.itemText">默认效果</span>
-					</div>
-				</div>
-			</div>
+			<cate v-for="(item, index) in data.cateObjArr"  @cateEvent=choosen :cateObj="item" :defaultId="data.defaultId" :num="index" ></cate>
 		</div>
 	</div>
 </template>
@@ -27,8 +20,13 @@
 
 import ajax from '../../lib/ajax.js'
 import Data from './data.js'
+
+import preview from './previewApp.vue'
+import cate from './cateApp.vue'
+
 let style = {
 	container: {
+		backgroundColor: '#f8f8f8',
 		position: 'fixed',
 		zIndex: 10,
 		top: 0,
@@ -71,77 +69,139 @@ let style = {
 	},
 	main: {
 		marginTop: '40px'
-	},
-	itemList: {
-		position: 'relative'
-	},
-	itemListTitle: {
-	    fontSize: '17px',
-    	padding: '14px 10px 12px'
-	},
-	itemArea: {
-		paddingRight: '25px'
-	},
-	item: {
-		width: '50%',
-    	borderLeftWidth: '25px'
-	},
-	itemPic: {
-		backgroundImage: 'url("//qzonestyle.gtimg.cn/qzone/space_item/material/CustomSparkle/org/0/13440/thumb1.png")',
-		paddingTop: '50%',
-		backgroundPosition: '50% 50%'
-	},
-	itemText: {
-	    maxWidth: '100%',
-	    padding: '4px',
-	    fontSize: '14px',
-	    height: '24px',
-	    lineHeight: '24px',
-	    color: '#a0a0a0',
-	    textAlign: 'center',
-	    overflow: 'hidden',
-	    verticalAlign: 'middle'
 	}
 }
 export default {
+	components: {
+        'cate': cate,
+        'preview': preview
+    },
 	created() {
 		let me = this;
-
 		let Promise1 = ajax.request({
 			"url": "http://activity.qzone.qq.com/fcg-bin/v2/fcg_get_user_info",
 			"type": "GET"
 		})
 
 		let Promise2 = ajax.request({
-			"url": "http://activity.qzone.qq.com/fcg-bin/v2/fcg_get_user_info",
+			"url": "http://mqzmall.qzone.qq.com/fcg-bin/material_cgi/fcg_get_material_tab",
 			"type": "GET"
 		})
 
 		let Promise3 = ajax.request({
-			"url": "http://activity.qzone.qq.com/fcg-bin/v2/fcg_get_user_info",
+			"url": "http://mqzmall.qzone.qq.com/fcg-bin/material_cgi/fcg_get_material_my_item",
 			"type": "GET"
 		})
-		console.log(123);
-		Promise.all(Promise1, Promise2, Promise3).then(values => {
-			console.log(values);
-		}).catch(reason => {
-			console.log(reason);
+		Promise.all([Promise1, Promise2, Promise3].map(p => p.catch((error) =>
+			 error))).then(values => {
+			me.data.userInfo = values[0] == me.proxyData('fakeData' ? Data.userInfo : values[0], 'userInfo');
+			me.data.homeData = values[1] == me.proxyData('fakeData' ? Data.materialInfo : values[1], 'homeData');
+			me.data.mineData = values[2] == me.proxyData('fakeData' ? Data.mineInfo : values[2], 'mineData');
 		})
 	},
 	data() {
 		return {
 			data: {
 				userInfo: {},
-				homeData: {},
-				mineData: {}
+				cateObjArr: [],
+				defaultId: 0,
+				previewObj: {}
 			},
 			style: style
 		}
 	},
 	methods: {
-		openSuperVip: function() {
+		proxyData: function(data, type) {
+			let me = this;
+			switch (type) {
+				case 'userInfo':
 
-		}
+				break;
+				case 'homeData':
+					var arr = [];
+					var isPrimaryScreen = true;
+					var homeData = data.data;
+					var cateArr = homeData.material_tab_get_rsp.tab_rsp.cates || [];
+					var firstTab = cateArr[0];
+
+					var defaultId = Number(homeData.material_tab_get_rsp.tab_rsp.extend_info && homeData.material_tab_get_rsp.tab_rsp.extend_info.iLastSparkleId || 0);
+					// 添加第一個默認元素
+					firstTab.items.unshift({
+						item_id: 0
+					});
+
+					firstTab.items = firstTab.items.filter(function(element) {
+						return element.item_id !== 13440;
+					});
+
+					firstTab.item_count = firstTab.items.length;
+					for (var i = 0; i < cateArr.length; i++) {
+						var cateObj = cateArr[i];
+
+						cateObj.i = i;
+						cateObj.userInfo = me.userInfo;
+						if (!cateObj.item_count) {
+							continue;
+						}
+						if (i > 2) {
+							isPrimaryScreen = false;
+						}
+						cateObj.isPrimaryScreen = isPrimaryScreen;
+						arr.push(cateObj);
+					}
+					me.data.defaultId = defaultId;
+					me.data.cateObjArr = arr;
+	                me.data.previewObj = {
+	                    userInfo: me.userInfo,
+	                    popup: false,
+	                    bg: '',
+	                    usetype: '',
+	                    text_color: ''
+	                }
+				break;
+				case 'mineData':
+
+				break;
+			}
+		},
+		choosen: function () {
+            let me = this;
+            let id = arguments[0];
+            let json = arguments[1];
+            console.warn(json);
+            if (id == me.defaultId) {
+                return;
+            }
+            me.data.defaultId = id;
+            me.data.previewObj.bg = JSON.parse(json).url;
+            console.warn(me.data.previewObj.bg);
+            if (typeof me.data.previewObj.bg == 'undefined') {
+                me.data.previewObj.bg = '//qzonestyle.gtimg.cn/qzone/space_item/material/CustomSparkle/org/0/13440/thumb1.png'
+            }
+            me.data.previewObj.usetype = JSON.parse(json).type;
+            me.data.previewObj.text_color = JSON.parse(json).text_color;
+            if (!!id && id != '0') {
+                me.showPopup();
+            } else {
+                me.hidePopup();
+                me.use('default');
+            }
+        },
+        showPopup() {
+        	let me = this;
+        	me.data.previewObj.popup = true;
+        },
+        hidePopup() {
+        	let me = this;
+        	me.data.previewObj.popup = false;
+        },
+        openVip() {
+
+        },
+        openSuperVip() {},
+        use() {
+
+        }
 	}
 }
 </script>
